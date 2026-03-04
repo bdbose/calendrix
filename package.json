@@ -1,0 +1,61 @@
+{
+  "name": "calendrix",
+  "version": "1.0.0",
+  "description": "A lightweight, headless React calendar component with range selection, hotel mode, blocked dates, min-nights, smart suggestions, and mobile/desktop variants.",
+  "keywords": [
+    "react",
+    "calendar",
+    "datepicker",
+    "date-range",
+    "hotel-calendar",
+    "booking",
+    "range-selection",
+    "react-calendar",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bdbose/react-calendar-ss"
+  },
+  "author": "bdbose",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/index.css"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsup && node scripts/add-use-client.js",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}
+
+

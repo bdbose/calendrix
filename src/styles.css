@@ -1,0 +1,595 @@
+.rcss-calendar {
+  --rcss-fg: #111827;
+  --rcss-muted: #6b7280;
+  --rcss-border: #e5e7eb;
+  --rcss-bg: #ffffff;
+  --rcss-bg-subtle: #f9fafb;
+  --rcss-accent: #2563eb;
+  --rcss-accent-fg: #ffffff;
+  --rcss-range-bg: #D6E6FF;
+  --rcss-radius: 12px;
+  --rcss-cell: 40px;
+  --rcss-gap: 4px;
+
+  color: var(--rcss-fg);
+  background: var(--rcss-bg);
+  border: 1px solid var(--rcss-border);
+  border-radius: var(--rcss-radius);
+  padding: 12px;
+  width: max-content;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+    Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.rcss-cal-header {
+  display: grid;
+  grid-template-columns: var(--rcss-cell) 1fr var(--rcss-cell);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rcss-cal-title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.rcss-cal-nav {
+  height: var(--rcss-cell);
+  width: var(--rcss-cell);
+  border-radius: 999px;
+  border: 1px solid var(--rcss-border);
+  background: var(--rcss-bg-subtle);
+  color: var(--rcss-fg);
+  cursor: pointer;
+  user-select: none;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rcss-cal-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rcss-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, var(--rcss-cell));
+  gap: var(--rcss-gap);
+  margin-bottom: 6px;
+}
+
+.rcss-cal-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: var(--rcss-muted);
+  padding: 4px 0;
+}
+
+.rcss-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, var(--rcss-cell));
+  gap: var(--rcss-gap);
+}
+
+.rcss-cal-cell {
+  height: var(--rcss-cell-h, var(--rcss-cell));
+  width: var(--rcss-cell-w, var(--rcss-cell));
+  /* border-radius: 999px; */
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--rcss-fg);
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  position: relative;
+}
+
+.rcss-cal-cell.is-out-month {
+  color: color-mix(in srgb, var(--rcss-muted) 60%, transparent);
+}
+
+.rcss-cal-cell:hover:not(:disabled) {
+  background: var(--rcss-bg-subtle);
+  border-color: var(--rcss-border);
+}
+
+.rcss-cal-cell.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+}
+
+
+
+.rcss-cal-cell:disabled,
+.rcss-cal-cell.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rcss-cal-shell {
+  display: flex;
+  gap: 24px;
+}
+
+.rcss-cal-months {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcss-cal-sidebar {
+  padding-top: 8px;
+}
+
+.rcss-cal-monthsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rcss-cal-month {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rcss-cal-monthTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.rcss-cal-footer {
+  margin-top: 12px;
+}
+
+/* ─── Range selection ─── */
+
+.rcss-cal-cell.is-in-range {
+  background: var(--rcss-range-bg);
+  border-radius: 0;
+}
+
+.rcss-cal-cell.is-range-start {
+  border-radius: 999px 0 0 999px;
+  background: var(--rcss-range-bg);
+}
+
+.rcss-cal-cell.is-range-start.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  /* border-radius: 999px; */
+}
+
+.rcss-cal-cell.is-range-end {
+  border-radius: 0 999px 999px 0;
+  background: var(--rcss-range-bg);
+}
+
+.rcss-cal-cell.is-range-end.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  /* border-radius: 999px; */
+}
+
+.rcss-cal-cell.is-today:not(.is-selected) {
+  border-color: var(--rcss-border);
+}
+
+/* ─── Blocked dates ─── */
+
+.rcss-cal-cell.is-blocked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Strikethrough (min-nights) ─── */
+
+.rcss-cal-cell.is-strikethrough {
+  cursor: not-allowed;
+}
+
+.rcss-cal-cell.is-strikethrough::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 1.5px;
+  background: #ef4444;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+/* ─── DefaultDayContent layout ─── */
+
+.rcss-cal-dayContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+  position: relative;
+}
+
+.rcss-cal-dayNum {
+  font-size: inherit;
+  line-height: 1;
+}
+
+/* ─── Event labels ─── */
+
+.rcss-cal-eventLabels {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.rcss-cal-eventLabel {
+  font-size: 6px;
+  line-height: 1;
+  background: #10b981;
+  color: #fff;
+  border-radius: 2px;
+  padding: 1px 3px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Day info badges ─── */
+
+.rcss-cal-dayInfo {
+  font-size: 8px;
+  line-height: 1;
+  border-radius: 3px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Variant: desktop ─── */
+
+.rcss-calendar.rcss-variant-desktop {
+  --rcss-accent: rgba(45, 102, 161, 1);
+  --rcss-accent-fg: #ffffff;
+  --rcss-range-bg: rgba(45, 102, 161, 0.11);
+  --rcss-cell: 36px;
+  --rcss-gap: 4px;
+
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  width: 100%;
+  background: #fff;
+  flex: 1;
+}
+
+.rcss-variant-desktop .rcss-cal-shell {
+  flex-direction: column;
+}
+
+.rcss-variant-desktop .rcss-cal-months {
+  width: 100%;
+}
+
+.rcss-variant-desktop .rcss-cal-monthsStack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.rcss-variant-desktop .rcss-cal-weekdays {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 2px;
+}
+
+.rcss-variant-desktop .rcss-cal-weekday {
+  font-size: 12px;
+  font-weight: 800;
+  color: #000;
+  text-transform: uppercase;
+  padding: 6px 0;
+}
+
+.rcss-variant-desktop .rcss-cal-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  row-gap: 2px;
+}
+
+.rcss-variant-desktop .rcss-cal-cell {
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-out-month {
+  visibility: hidden;
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-in-range {
+  background: var(--rcss-range-bg);
+  border-radius: 0;
+  color: #000;
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-range-start {
+  border-radius: 8px 0 0 8px;
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-range-start.is-selected {
+  background: var(--rcss-accent);
+  border-radius: 8px 0 0 8px;
+  position: relative;
+  z-index: 1;
+  border-color: var(--rcss-accent);
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-range-end {
+  border-radius: 0 8px 8px 0;
+  background: var(--rcss-accent);
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-range-end.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  border-radius: 0 8px 8px 0;
+  position: relative;
+  z-index: 1;
+  border-color: var(--rcss-accent);
+}
+
+.rcss-variant-desktop .rcss-cal-cell.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  font-weight: 600;
+  border-color: var(--rcss-accent);
+}
+
+/* ─── Variant: mobile ─── */
+
+.rcss-calendar.rcss-variant-mobile {
+  --rcss-accent: #2D5BF0;
+  --rcss-accent-fg: #ffffff;
+  --rcss-range-bg: #D6E6FF;
+  --rcss-cell: 46px;
+  --rcss-gap: 2px;
+
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  width: 100%;
+  background: #fff;
+}
+
+.rcss-variant-mobile .rcss-cal-shell {
+  flex-direction: column;
+}
+
+.rcss-variant-mobile .rcss-cal-months {
+  width: 100%;
+}
+
+.rcss-variant-mobile .rcss-cal-monthsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rcss-variant-mobile .rcss-cal-weekdays {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+.rcss-variant-mobile .rcss-cal-weekday {
+  font-size: 12px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  padding: 8px 0;
+}
+
+.rcss-variant-mobile .rcss-cal-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  row-gap: 2px;
+}
+
+.rcss-variant-mobile .rcss-cal-cell {
+  width: 100%;
+  height: 46px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-out-month {
+  visibility: hidden;
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-in-range {
+  background: var(--rcss-range-bg);
+  border-radius: 0;
+  color: #000;
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-range-start {
+  border-radius: 999px 0 0 999px;
+  background: var(--rcss-range-bg);
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-range-start.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  position: relative;
+  z-index: 1;
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-range-end {
+  border-radius: 0 999px 999px 0;
+  background: var(--rcss-range-bg);
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-range-end.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  position: relative;
+  z-index: 1;
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-selected {
+  background: var(--rcss-accent);
+  color: var(--rcss-accent-fg);
+  font-weight: 600;
+}
+
+/* ─── Smart Suggestions (desktop sidebar) ─── */
+
+.rcss-suggestions-sidebar {
+  padding: 4px 0;
+}
+
+.rcss-suggestions-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #333;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.rcss-suggestion-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #b1b1b1;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease;
+}
+
+.rcss-suggestion-btn:hover {
+  border-color: #888;
+}
+
+.rcss-suggestion-label {
+  font-weight: 600;
+  color: #5f5e5e;
+  white-space: nowrap;
+}
+
+.rcss-suggestion-dot {
+  color: #aaa;
+}
+
+.rcss-suggestion-sub {
+  color: #5f5e5e;
+  font-size: 11px;
+}
+
+/* ─── Smart Suggestions (mobile toggle + panel) ─── */
+
+.rcss-suggestions-mobile {
+  margin-bottom: 8px;
+}
+
+.rcss-suggestions-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rcss-suggestions-toggle-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.rcss-suggestions-chevron {
+  display: inline-flex;
+  color: #333;
+  transition: transform 0.25s ease;
+}
+
+.rcss-suggestions-chevron.rcss-open {
+  transform: rotate(180deg);
+}
+
+.rcss-suggestions-panel {
+  padding: 12px 4px 8px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid #eee;
+}
+
+.rcss-suggestion-card {
+  flex: 0 0 auto;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.rcss-suggestion-card-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.rcss-suggestion-select {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  white-space: nowrap;
+}

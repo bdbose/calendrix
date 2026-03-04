@@ -1,0 +1,484 @@
+/* ─── Reset ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-primary: "Avenir", "Inter", ui-sans-serif, system-ui, -apple-system,
+    Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-primary);
+}
+
+/* ════════════════════════════════════════════════════════
+   SHARED — day cells & month headers
+   ════════════════════════════════════════════════════════ */
+
+.calDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+}
+
+.calDayNum {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.calDayIcon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+.calMonthHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+
+.calMonthTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #000;
+  font-family: var(--font-primary);
+}
+
+.holidayBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: #E8F5E9;
+  color: #373636;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── Event labels inside day cells ── */
+.calEventLabels {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.calEventLabel {
+  font-size: 6px;
+  line-height: 1;
+  background: #10b981;
+  color: #fff;
+  border-radius: 2px;
+  padding: 1px 3px;
+  white-space: nowrap;
+}
+
+/* ── Day info badges ── */
+.calDayInfo {
+  font-size: 8px;
+  line-height: 1;
+  border-radius: 3px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+
+/* ════════════════════════════════════════════════════════
+   DESKTOP VIEW
+   ════════════════════════════════════════════════════════ */
+
+.desktopOverlay {
+  min-height: 100vh;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.desktopCard {
+  display: flex;
+  width: 720px;
+  min-height: 520px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Sidebar ── */
+.desktopSidebar {
+  width: 200px;
+  padding: 20px 16px;
+  border-right: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.desktopSidebarTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #333;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.desktopSuggestion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #b1b1b1;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-size: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease;
+}
+
+.desktopSuggestion:hover {
+  border-color: #888;
+}
+
+.desktopSuggestionLabel {
+  font-weight: 600;
+  color: #5f5e5e;
+  white-space: nowrap;
+}
+
+.desktopSuggestionDot {
+  color: #aaa;
+}
+
+.desktopSuggestionSub {
+  color: #5f5e5e;
+  font-size: 11px;
+}
+
+/* ── Main panel ── */
+.desktopMain {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktopTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* Check-in / Check-out pills */
+.desktopDatePills {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.desktopPill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.desktopPillText {
+  font-size: 13px;
+  font-weight: 500;
+  color: #000;
+}
+
+.desktopPillPlaceholder {
+  font-size: 13px;
+  color: #aaa;
+}
+
+/* ── Desktop calendar customizations (font-family, renderDay sizing) ── */
+.desktopCalendar .rcss-cal-cell {
+  font-family: var(--font-primary);
+}
+
+.desktopCalendar .rcss-cal-cell .calDayNum {
+  font-size: 14px;
+}
+
+.desktopCalendar .calMonthHeader {
+  padding: 4px 0 2px;
+}
+
+.desktopCalendar .calMonthTitle {
+  font-size: 16px;
+}
+
+/* ── Desktop footer ── */
+.desktopFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: auto;
+  border-top: 1px solid #eee;
+}
+
+.desktopClearBtn {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  color: #232323;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: var(--font-primary);
+}
+
+.desktopContinueBtn {
+  background: rgba(55, 54, 54, 0.6);
+  border: none;
+  color: #fff;
+  border-radius: 999px;
+  height: 42px;
+  padding: 0 28px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-primary);
+  min-width: 180px;
+  transition: background 0.15s ease;
+}
+
+.desktopContinueBtn:hover {
+  background: rgba(55, 54, 54, 0.8);
+}
+
+
+/* ════════════════════════════════════════════════════════
+   MOBILE VIEW
+   ════════════════════════════════════════════════════════ */
+
+.mobilePage {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-primary);
+  position: relative;
+  padding-bottom: 80px;
+}
+
+/* ── OUR SUGGESTIONS toggle ── */
+.suggestionsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.suggestionsToggleText {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.suggestionsChevron {
+  display: inline-flex;
+  color: #333;
+  transition: transform 0.25s ease;
+}
+
+.suggestionsChevron.open {
+  transform: rotate(180deg);
+}
+
+/* ── Suggestions panel ── */
+.suggestionsPanel {
+  padding: 12px 20px 8px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid #eee;
+}
+
+.suggestionCard {
+  flex: 0 0 auto;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.suggestionLabel {
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.suggestionSub {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.suggestionSelect {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2D5BF0;
+  white-space: nowrap;
+}
+
+/* ── Date range header ── */
+.dateRangeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.dateRangeDate {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+}
+
+.dateRangeArrow {
+  font-size: 16px;
+  color: #888;
+}
+
+.dateRangePlaceholder {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+}
+
+/* ── Calendar scroll area ── */
+.calendarScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 16px;
+}
+
+/* ── Mobile calendar customizations (font-family) ── */
+.mobileCalendar .rcss-cal-cell {
+  font-family: var(--font-primary);
+}
+
+/* ── Long Stay Banner ── */
+.longStayBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-top: 4px;
+}
+
+.longStayEmoji {
+  font-size: 16px;
+}
+
+.longStayText {
+  font-size: 14px;
+  font-weight: 800;
+  color: #333;
+  font-family: var(--font-primary);
+}
+
+/* ── Mobile Footer ── */
+.mobileFooter {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 430px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  z-index: 10;
+}
+
+.clearDatesBtn {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  color: #232323;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.continueBtn {
+  background: #000;
+  border: none;
+  color: #fff;
+  border-radius: 999px;
+  height: 48px;
+  padding: 0 32px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  min-width: 200px;
+  transition: background 0.15s ease;
+}
+
+.continueBtn:hover {
+  background: #222;
+}
