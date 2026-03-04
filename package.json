@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bdbose/react-calendar-ss"
+    "url": "https://github.com/bdbose/calendrix"
   },
   "author": "bdbose",
   "type": "module",
