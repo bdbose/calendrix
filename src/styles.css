@@ -4,9 +4,9 @@
   --rcss-border: #e5e7eb;
   --rcss-bg: #ffffff;
   --rcss-bg-subtle: #f9fafb;
-  --rcss-accent: #2563eb;
+  --rcss-accent: rgba(45, 102, 161, 1);
   --rcss-accent-fg: #ffffff;
-  --rcss-range-bg: #D6E6FF;
+  --rcss-range-bg: #d6e6ff;
   --rcss-radius: 12px;
   --rcss-cell: 40px;
   --rcss-gap: 4px;
@@ -17,8 +17,8 @@
   border-radius: var(--rcss-radius);
   padding: 12px;
   width: max-content;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-    Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 .rcss-cal-header {
@@ -99,8 +99,6 @@
   background: var(--rcss-accent);
   color: var(--rcss-accent-fg);
 }
-
-
 
 .rcss-cal-cell:disabled,
 .rcss-cal-cell.is-disabled {
@@ -277,7 +275,7 @@
 }
 
 .rcss-variant-desktop .rcss-cal-shell {
-  flex-direction: column;
+  flex-direction: row-reverse;
 }
 
 .rcss-variant-desktop .rcss-cal-months {
@@ -369,9 +367,9 @@
 /* ─── Variant: mobile ─── */
 
 .rcss-calendar.rcss-variant-mobile {
-  --rcss-accent: #2D5BF0;
+  --rcss-accent: #2d5bf0;
   --rcss-accent-fg: #ffffff;
-  --rcss-range-bg: #D6E6FF;
+  --rcss-range-bg: #d6e6ff;
   --rcss-cell: 46px;
   --rcss-gap: 2px;
 

@@ -1,6 +1,6 @@
 {
   "name": "calendrix",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight, headless React calendar component with range selection, hotel mode, blocked dates, min-nights, smart suggestions, and mobile/desktop variants.",
   "keywords": [
     "react",
@@ -57,5 +57,3 @@
     "typescript": "^5.5.0"
   }
 }
-
-

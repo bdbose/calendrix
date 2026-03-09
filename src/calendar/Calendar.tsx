@@ -10,14 +10,26 @@ import {
   isSameDay,
   isSameMonth,
   startOfDay,
-  startOfMonth
+  startOfMonth,
 } from "./dateUtils";
 import { formatDateKey } from "./formatDateKey";
-import { isDateBlocked, hasBlockedDateInRange, isBeforeToday, findFirstBlockedDateAfter } from "./blockedDatesUtils";
+import {
+  isDateBlocked,
+  hasBlockedDateInRange,
+  isBeforeToday,
+  findFirstBlockedDateAfter,
+} from "./blockedDatesUtils";
 import { buildEventMap, getEventLabels } from "./eventsUtils";
 import { buildDayInfoMap, getDayInfo } from "./dayInfoUtils";
-import { getMinNights, meetsMinNights, getStrikethroughDates } from "./minNightsUtils";
-import { SmartSuggestionsDesktop, SmartSuggestionsMobile } from "./SmartSuggestions";
+import {
+  getMinNights,
+  meetsMinNights,
+  getStrikethroughDates,
+} from "./minNightsUtils";
+import {
+  SmartSuggestionsDesktop,
+  SmartSuggestionsMobile,
+} from "./SmartSuggestions";
 import type {
   CalendarProps,
   CalendarRange,
@@ -25,13 +37,13 @@ import type {
   CalendarType,
   CalendarValue,
   DayInfo,
-  SmartSuggestion
+  SmartSuggestion,
 } from "./types";
 
 function useControllableState<T>({
   value,
   defaultValue,
-  onChange
+  onChange,
 }: {
   value: T | undefined;
   defaultValue: T;
@@ -102,7 +114,7 @@ export function Calendar(props: CalendarProps) {
     filterPastSuggestions = true,
     onSuggestionSelect,
     // Lazy loading
-    initialMonthsToRender
+    initialMonthsToRender,
   } = props;
 
   const isHotelMode = calendarType === "hotel";
@@ -112,11 +124,13 @@ export function Calendar(props: CalendarProps) {
   >({
     value,
     defaultValue,
-    onChange
+    onChange,
   });
 
-  const selectedSingle = mode === "single" ? (selectedAny as CalendarValue) : null;
-  const selectedRange = mode === "range" ? (selectedAny as CalendarRange) : null;
+  const selectedSingle =
+    mode === "single" ? (selectedAny as CalendarValue) : null;
+  const selectedRange =
+    mode === "range" ? (selectedAny as CalendarRange) : null;
 
   const initialMonth = React.useMemo(() => {
     const base =
@@ -133,12 +147,21 @@ export function Calendar(props: CalendarProps) {
       }
     }
     return result;
-  }, [allowPastDates, defaultMonth, maxDate, minDate, mode, month, selectedRange?.from, selectedSingle]);
+  }, [
+    allowPastDates,
+    defaultMonth,
+    maxDate,
+    minDate,
+    mode,
+    month,
+    selectedRange?.from,
+    selectedSingle,
+  ]);
 
   const [visibleMonth, setVisibleMonth] = useControllableState<Date>({
     value: month ? startOfMonth(month) : undefined,
     defaultValue: initialMonth,
-    onChange: onMonthChange
+    onChange: onMonthChange,
   });
 
   const weekdayNames =
@@ -198,7 +221,13 @@ export function Calendar(props: CalendarProps) {
   /* ─── Hotel mode: checkout boundary ─── */
 
   const hotelCheckoutBoundary = React.useMemo(() => {
-    if (!isHotelMode || mode !== "range" || !selectedRange?.from || selectedRange?.to) return null;
+    if (
+      !isHotelMode ||
+      mode !== "range" ||
+      !selectedRange?.from ||
+      selectedRange?.to
+    )
+      return null;
     return findFirstBlockedDateAfter(selectedRange.from, blockedDates);
   }, [isHotelMode, mode, selectedRange?.from, selectedRange?.to, blockedDates]);
 
@@ -248,7 +277,10 @@ export function Calendar(props: CalendarProps) {
   const handleSuggestionSelect = React.useCallback(
     (suggestion: SmartSuggestion) => {
       if (mode === "range") {
-        setSelectedAny({ from: startOfDay(suggestion.from), to: startOfDay(suggestion.to) });
+        setSelectedAny({
+          from: startOfDay(suggestion.from),
+          to: startOfDay(suggestion.to),
+        });
       } else {
         setSelectedAny(startOfDay(suggestion.from));
       }
@@ -274,20 +306,32 @@ export function Calendar(props: CalendarProps) {
 
       // Hotel mode: block dates beyond the first blocked date when selecting checkout
       if (isHotelMode && hotelCheckoutBoundary && !dateBlocked) {
-        if (startOfDay(d).getTime() > startOfDay(hotelCheckoutBoundary).getTime()) return true;
+        if (
+          startOfDay(d).getTime() > startOfDay(hotelCheckoutBoundary).getTime()
+        )
+          return true;
       }
 
       if (dateBlocked) return true;
       return false;
     },
-    [isDateDisabled, maxDate, minDate, allowPastDates, blockedDates, isHotelMode, hotelCheckoutBoundary]
+    [
+      isDateDisabled,
+      maxDate,
+      minDate,
+      allowPastDates,
+      blockedDates,
+      isHotelMode,
+      hotelCheckoutBoundary,
+    ]
   );
 
   /* ─── isInSelectedRange ─── */
 
   const isInSelectedRange = React.useCallback(
     (d: Date) => {
-      if (mode !== "range" || !selectedRange?.from || !selectedRange?.to) return false;
+      if (mode !== "range" || !selectedRange?.from || !selectedRange?.to)
+        return false;
       const t = startOfDay(d).getTime();
       const a = startOfDay(selectedRange.from).getTime();
       const b = startOfDay(selectedRange.to).getTime();
@@ -310,7 +354,7 @@ export function Calendar(props: CalendarProps) {
 
       const current: CalendarRange = (selectedRange ?? {
         from: null,
-        to: null
+        to: null,
       }) as CalendarRange;
 
       // No check-in yet, or both already set → start new selection
@@ -341,7 +385,9 @@ export function Calendar(props: CalendarProps) {
       }
 
       // After check-in → validate range
-      if (hasBlockedDateInRange(current.from, day, blockedDates, calendarType)) {
+      if (
+        hasBlockedDateInRange(current.from, day, blockedDates, calendarType)
+      ) {
         // Blocked dates between check-in and clicked date: start new selection
         setSelectedAny({ from: day, to: null });
         return;
@@ -353,7 +399,16 @@ export function Calendar(props: CalendarProps) {
 
       setSelectedAny({ from: current.from, to: day });
     },
-    [mode, selectedRange, setSelectedAny, allowSameDay, minNights, blockedDates, strikethroughDates, calendarType]
+    [
+      mode,
+      selectedRange,
+      setSelectedAny,
+      allowSameDay,
+      minNights,
+      blockedDates,
+      strikethroughDates,
+      calendarType,
+    ]
   );
 
   /* ─── Slot helpers ─── */
@@ -374,8 +429,12 @@ export function Calendar(props: CalendarProps) {
   const rootStyle: React.CSSProperties = {
     ...st("root"),
     ...style,
-    ...(cellWidth != null ? { "--rcss-cell-w": `${cellWidth}px` } as React.CSSProperties : {}),
-    ...(cellHeight != null ? { "--rcss-cell-h": `${cellHeight}px` } as React.CSSProperties : {})
+    ...(cellWidth != null
+      ? ({ "--rcss-cell-w": `${cellWidth}px` } as React.CSSProperties)
+      : {}),
+    ...(cellHeight != null
+      ? ({ "--rcss-cell-h": `${cellHeight}px` } as React.CSSProperties)
+      : {}),
   };
 
   /* ─── Render ─── */
@@ -385,14 +444,22 @@ export function Calendar(props: CalendarProps) {
       className={[
         cn("root", "rcss-calendar"),
         variant ? `rcss-variant-${variant}` : "",
-        className
-      ].filter(Boolean).join(" ")}
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={rootStyle}
     >
       <div className={cn("shell", "rcss-cal-shell")} style={st("shell")}>
         {/* Desktop Smart Suggestions sidebar */}
-        {smartSuggestions && smartSuggestions.length > 0 && showSmartSuggestions && variant === "desktop" ? (
-          <aside className={cn("sidebar", "rcss-cal-sidebar")} style={st("sidebar")}>
+        {smartSuggestions &&
+        smartSuggestions.length > 0 &&
+        showSmartSuggestions &&
+        variant === "desktop" ? (
+          <aside
+            className={cn("sidebar", "rcss-cal-sidebar")}
+            style={st("sidebar")}
+          >
             <SmartSuggestionsDesktop
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
@@ -400,14 +467,20 @@ export function Calendar(props: CalendarProps) {
             />
           </aside>
         ) : sidebar ? (
-          <aside className={cn("sidebar", "rcss-cal-sidebar")} style={st("sidebar")}>
+          <aside
+            className={cn("sidebar", "rcss-cal-sidebar")}
+            style={st("sidebar")}
+          >
             {sidebar}
           </aside>
         ) : null}
 
         <div className={cn("months", "rcss-cal-months")} style={st("months")}>
           {/* Mobile Smart Suggestions */}
-          {smartSuggestions && smartSuggestions.length > 0 && showSmartSuggestions && variant === "mobile" ? (
+          {smartSuggestions &&
+          smartSuggestions.length > 0 &&
+          showSmartSuggestions &&
+          variant === "mobile" ? (
             <SmartSuggestionsMobile
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
@@ -416,7 +489,10 @@ export function Calendar(props: CalendarProps) {
           ) : null}
 
           {showNavigation && (
-            <div className={cn("header", "rcss-cal-header")} style={st("header")}>
+            <div
+              className={cn("header", "rcss-cal-header")}
+              style={st("header")}
+            >
               <button
                 type="button"
                 className={cn("nav", "rcss-cal-nav")}
@@ -448,7 +524,11 @@ export function Calendar(props: CalendarProps) {
           )}
 
           {numberOfMonths <= 1 && (
-            <div className={cn("weekdays", "rcss-cal-weekdays")} style={st("weekdays")} role="row">
+            <div
+              className={cn("weekdays", "rcss-cal-weekdays")}
+              style={st("weekdays")}
+              role="row"
+            >
               {weekdayNames.map((wd) => (
                 <div
                   key={wd}
@@ -480,7 +560,11 @@ export function Calendar(props: CalendarProps) {
                     )
                   ) : null}
                   {numberOfMonths > 1 && (
-                    <div className={cn("weekdays", "rcss-cal-weekdays")} style={st("weekdays")} role="row">
+                    <div
+                      className={cn("weekdays", "rcss-cal-weekdays")}
+                      style={st("weekdays")}
+                      role="row"
+                    >
                       {weekdayNames.map((wd) => (
                         <div
                           key={wd}
@@ -493,17 +577,28 @@ export function Calendar(props: CalendarProps) {
                       ))}
                     </div>
                   )}
-                  <div className={cn("grid", "rcss-cal-grid")} style={st("grid")} role="grid">
+                  <div
+                    className={cn("grid", "rcss-cal-grid")}
+                    style={st("grid")}
+                    role="grid"
+                  >
                     {days.map((d) => {
                       const inMonth = isSameMonth(d, m);
                       const rawBlocked = isDateBlocked(d, blockedDates);
                       // In hotel mode, the checkout boundary date is NOT visually blocked
-                      const blocked = rawBlocked && !(isHotelMode && hotelCheckoutBoundary && isSameDay(d, hotelCheckoutBoundary));
+                      const blocked =
+                        rawBlocked &&
+                        !(
+                          isHotelMode &&
+                          hotelCheckoutBoundary &&
+                          isSameDay(d, hotelCheckoutBoundary)
+                        );
                       const pastBlocked = !allowPastDates && isBeforeToday(d);
                       const disabled = isDisabled(d) || !inMonth;
 
                       const isStrikethrough =
-                        inMonth && strikethroughDates.includes(formatDateKey(d));
+                        inMonth &&
+                        strikethroughDates.includes(formatDateKey(d));
 
                       const selected =
                         mode === "single"
@@ -516,14 +611,21 @@ export function Calendar(props: CalendarProps) {
                               (isSameDay(d, selectedRange.from) ||
                                 isSameDay(d, selectedRange.to)));
 
-                      const inRange = mode === "range" ? isInSelectedRange(d) : false;
+                      const inRange =
+                        mode === "range" ? isInSelectedRange(d) : false;
                       const rangeStart =
-                        mode === "range" && !!selectedRange?.from && isSameDay(d, selectedRange.from);
+                        mode === "range" &&
+                        !!selectedRange?.from &&
+                        isSameDay(d, selectedRange.from);
                       const rangeEnd =
-                        mode === "range" && !!selectedRange?.to && isSameDay(d, selectedRange.to);
+                        mode === "range" &&
+                        !!selectedRange?.to &&
+                        isSameDay(d, selectedRange.to);
                       const today = isToday(d);
 
-                      const eventLabels = inMonth ? getEventLabels(d, eventMap) : [];
+                      const eventLabels = inMonth
+                        ? getEventLabels(d, eventMap)
+                        : [];
                       const info = inMonth ? getDayInfo(d, dayInfoMap) : null;
                       const minNightsReq = inMonth
                         ? getMinNights(d, minNights, blockedDates)
@@ -542,13 +644,12 @@ export function Calendar(props: CalendarProps) {
                         blockedByMinNights: isStrikethrough,
                         eventLabels,
                         dayInfo: info,
-                        minNightsRequired: minNightsReq
+                        minNightsRequired: minNightsReq,
                       };
 
-                      const content =
-                        renderDay?.({ state: dayState }) ?? (
-                          <DefaultDayContent state={dayState} />
-                        );
+                      const content = renderDay?.({ state: dayState }) ?? (
+                        <DefaultDayContent state={dayState} />
+                      );
 
                       return (
                         <button
@@ -565,7 +666,6 @@ export function Calendar(props: CalendarProps) {
                             today ? "is-today" : "",
                             blocked || pastBlocked ? "is-blocked" : "",
                             isStrikethrough ? "is-strikethrough" : "",
-                            
                           ]
                             .filter(Boolean)
                             .join(" ")}
@@ -610,14 +710,18 @@ export function Calendar(props: CalendarProps) {
 
 /* ─── Default day content (replaces the plain <span>) ─── */
 
-function DefaultDayContent({ state }: { state: {
-  date: Date;
-  eventLabels: string[];
-  dayInfo: DayInfo | null;
-  minNightsRequired: number | null;
-  blockedByMinNights: boolean;
-  [key: string]: any;
-}}) {
+function DefaultDayContent({
+  state,
+}: {
+  state: {
+    date: Date;
+    eventLabels: string[];
+    dayInfo: DayInfo | null;
+    minNightsRequired: number | null;
+    blockedByMinNights: boolean;
+    [key: string]: any;
+  };
+}) {
   return (
     <div className="rcss-cal-dayContent">
       {/* {state.eventLabels.length > 0 && (
@@ -633,7 +737,7 @@ function DefaultDayContent({ state }: { state: {
           className="rcss-cal-dayInfo"
           style={{
             color: state.dayInfo.textColor,
-            backgroundColor: state.dayInfo.backgroundColor
+            backgroundColor: state.dayInfo.backgroundColor,
           }}
         >
           {state.dayInfo.text}

@@ -1,23 +1,44 @@
 import * as React from "react";
 import { Calendar } from "calendrix";
-import type { CalendarRange, CalendarEvent, DayInfo, MinNights, SmartSuggestion } from "calendrix";
+import type {
+  CalendarRange,
+  CalendarEvent,
+  DayInfo,
+  MinNights,
+  SmartSuggestion,
+} from "calendrix";
 import "calendrix/styles.css";
 import "./demo.css";
 
 /* ── Holiday metadata ── */
-const holidaysByMonth: Record<string, { count: number; dates: Record<number, string> }> = {
+const holidaysByMonth: Record<
+  string,
+  { count: number; dates: Record<number, string> }
+> = {
   "2026-0": {
     count: 3,
     dates: {
-      26: "🇮🇳" // Republic Day
-    }
+      26: "🇮🇳", // Republic Day
+    },
   },
   "2026-1": {
     count: 1,
     dates: {
-      14: "❤️" // Valentine's Day
-    }
-  }
+      14: "❤️", // Valentine's Day
+    },
+  },
+  "2026-2": {
+    count: 1,
+    dates: {
+      3: "🫟",
+    },
+  },
+  "2026-3": {
+    count: 1,
+    dates: {
+      3: "✝",
+    },
+  },
 };
 
 function getHolidayKey(d: Date) {
@@ -26,48 +47,154 @@ function getHolidayKey(d: Date) {
 
 /* ── Suggestions (now as SmartSuggestion[] data for the library prop) ── */
 const suggestions: SmartSuggestion[] = [
-  { label: "January 24-27", sub: "Republic Day Weekend", from: new Date(2026, 0, 24), to: new Date(2026, 0, 27) },
-  { label: "January 30 - February 2", sub: "Republic Day Weekend", from: new Date(2026, 0, 30), to: new Date(2026, 1, 2) },
-  { label: "February 14-16", sub: "Valentine Weekend", from: new Date(2026, 1, 14), to: new Date(2026, 1, 16) }
+  {
+    label: "January 24-27",
+    sub: "Republic Day Weekend",
+    from: new Date(2026, 0, 24),
+    to: new Date(2026, 0, 27),
+  },
+  {
+    label: "January 30 - February 2",
+    sub: "Republic Day Weekend",
+    from: new Date(2026, 0, 30),
+    to: new Date(2026, 1, 2),
+  },
+  {
+    label: "February 14-16",
+    sub: "Valentine Weekend",
+    from: new Date(2026, 1, 14),
+    to: new Date(2026, 1, 16),
+  },
+  {
+    label: "Good Friday 3rd to 5th April",
+    sub: "Good Friday Weekend",
+    from: new Date(2026, 3, 3),
+    to: new Date(2026, 3, 5),
+  },
 ];
 
 /* ── Calendrax feature data ── */
 const events: CalendarEvent[] = [
-  { start_date: "2026-01-24", end_date: "2026-01-26", name: "Republic Day", specific_teams: "All" },
-  { start_date: "2026-02-14", end_date: "2026-02-14", name: "Valentine's", specific_teams: "All" }
+  {
+    start_date: "2026-01-24",
+    end_date: "2026-01-26",
+    name: "Republic Day",
+    specific_teams: "All",
+  },
+  {
+    start_date: "2026-02-14",
+    end_date: "2026-02-14",
+    name: "Valentine's",
+    specific_teams: "All",
+  },
+  {
+    start_date: "2026-02-14",
+    end_date: "2026-02-14",
+    name: "Valentine's",
+    specific_teams: "All",
+  },
+  {
+    start_date: "2026-04-03",
+    end_date: "2026-04-03",
+    name: "Good Friday",
+    specific_teams: "All",
+  },
 ];
 
 const blockedDates = [
-  "2026-01-10", "2026-01-11", "2026-02-20", "2026-02-21",
-  "2026-03-11", "2026-03-12",
-  "2026-03-15"  // Hotel mode test: March 14 has minNights=2, but 15th is blocked → minNights waived
+  "2026-01-10",
+  "2026-01-11",
+  "2026-02-20",
+  "2026-02-21",
+  "2026-03-11",
+  "2026-03-12",
+  "2026-03-15", // Hotel mode test: March 14 has minNights=2, but 15th is blocked → minNights waived
 ];
 
 const dayInfoData: DayInfo[] = [
-  { date: "2026-01-16", text: "₹8K", textColor: "#0066cc", backgroundColor: "#e6f2ff" },
-  { date: "2026-01-17", text: "₹9K", textColor: "#0066cc", backgroundColor: "#e6f2ff" },
-  { date: "2026-01-18", text: "₹12K", textColor: "#cc0000", backgroundColor: "#ffe6e6" },
-  { date: "2026-01-24", text: "₹15K", textColor: "#cc0000", backgroundColor: "#ffe6e6" },
-  { date: "2026-01-25", text: "₹15K", textColor: "#cc0000", backgroundColor: "#ffe6e6" },
-  { date: "2026-01-26", text: "₹18K", textColor: "#cc0000", backgroundColor: "#ffe6e6" }
+  {
+    date: "2026-01-16",
+    text: "₹8K",
+    textColor: "#0066cc",
+    backgroundColor: "#e6f2ff",
+  },
+  {
+    date: "2026-01-17",
+    text: "₹9K",
+    textColor: "#0066cc",
+    backgroundColor: "#e6f2ff",
+  },
+  {
+    date: "2026-01-18",
+    text: "₹12K",
+    textColor: "#cc0000",
+    backgroundColor: "#ffe6e6",
+  },
+  {
+    date: "2026-01-24",
+    text: "₹15K",
+    textColor: "#cc0000",
+    backgroundColor: "#ffe6e6",
+  },
+  {
+    date: "2026-01-25",
+    text: "₹15K",
+    textColor: "#cc0000",
+    backgroundColor: "#ffe6e6",
+  },
+  {
+    date: "2026-01-26",
+    text: "₹18K",
+    textColor: "#cc0000",
+    backgroundColor: "#ffe6e6",
+  },
+  {
+    date: "2026-04-01",
+    text: "₹19K",
+    textColor: "#cc0000",
+    backgroundColor: "#ffe6e6",
+  },
+  {
+    date: "2026-04-02",
+    text: "₹18K",
+    textColor: "#6aff5f",
+    backgroundColor: "#187417",
+  },
+  {
+    date: "2026-04-03",
+    text: "₹20K",
+    textColor: "#000000",
+    backgroundColor: "",
+  },
 ];
 
 const minNightsData: MinNights = {
-  "2026-01-24": 3,   // Republic Day weekend requires 3-night min
-  "2026-03-14": 2    // Valentine's weekend requires 2-night min
+  "2026-01-24": 3, // Republic Day weekend requires 3-night min
+  "2026-03-14": 2,
+  "2026-04-01": 4, // Valentine's weekend requires 2-night min
 };
 
 /* ── Helpers ── */
 function formatDateLong(d: Date) {
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function formatDateShort(d: Date) {
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function nightsBetween(a: Date, b: Date) {
-  return Math.round(Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.round(
+    Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)
+  );
 }
 
 /* ── getVariantFromURL ── */
@@ -82,17 +209,65 @@ function getInitialVariant(): "mobile" | "desktop" {
 /* ── Calendar icon SVG ── */
 function CalendarIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1.5" y="2.5" width="13" height="12" rx="1.5" stroke="#999" strokeWidth="1"/>
-      <line x1="4.5" y1="1" x2="4.5" y2="4" stroke="#999" strokeWidth="1" strokeLinecap="round"/>
-      <line x1="11.5" y1="1" x2="11.5" y2="4" stroke="#999" strokeWidth="1" strokeLinecap="round"/>
-      <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="#999" strokeWidth="1"/>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="1.5"
+        y="2.5"
+        width="13"
+        height="12"
+        rx="1.5"
+        stroke="#999"
+        strokeWidth="1"
+      />
+      <line
+        x1="4.5"
+        y1="1"
+        x2="4.5"
+        y2="4"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <line
+        x1="11.5"
+        y1="1"
+        x2="11.5"
+        y2="4"
+        stroke="#999"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <line
+        x1="1.5"
+        y1="6.5"
+        x2="14.5"
+        y2="6.5"
+        stroke="#999"
+        strokeWidth="1"
+      />
     </svg>
   );
 }
 
 /* ── Shared renderDay (enhanced with calendrax state) ── */
-function renderDay({ state }: { state: { date: Date; eventLabels?: string[]; dayInfo?: DayInfo | null; minNightsRequired?: number | null; blockedByMinNights?: boolean; [key: string]: any } }) {
+function renderDay({
+  state,
+}: {
+  state: {
+    date: Date;
+    eventLabels?: string[];
+    dayInfo?: DayInfo | null;
+    minNightsRequired?: number | null;
+    blockedByMinNights?: boolean;
+    [key: string]: any;
+  };
+}) {
   const key = getHolidayKey(state.date);
   const info = holidaysByMonth[key];
   const icon = info?.dates[state.date.getDate()];
@@ -110,7 +285,10 @@ function renderDay({ state }: { state: { date: Date; eventLabels?: string[]; day
       {state.dayInfo && (
         <span
           className="calDayInfo"
-          style={{ color: state.dayInfo.textColor, backgroundColor: state.dayInfo.backgroundColor }}
+          style={{
+            color: state.dayInfo.textColor,
+            backgroundColor: state.dayInfo.backgroundColor,
+          }}
         >
           {state.dayInfo.text}
         </span>
@@ -146,7 +324,7 @@ function DesktopCalendar({
   selectionMode,
   allowPastDates,
   singleDate,
-  setSingleDate
+  setSingleDate,
 }: {
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
@@ -170,14 +348,28 @@ function DesktopCalendar({
             <div className="desktopDatePills">
               <div className="desktopPill">
                 <CalendarIcon />
-                <span className={valueRange.from ? "desktopPillText" : "desktopPillPlaceholder"}>
-                  {valueRange.from ? formatDateShort(valueRange.from) : "Check-in Date"}
+                <span
+                  className={
+                    valueRange.from
+                      ? "desktopPillText"
+                      : "desktopPillPlaceholder"
+                  }
+                >
+                  {valueRange.from
+                    ? formatDateShort(valueRange.from)
+                    : "Check-in Date"}
                 </span>
               </div>
               <div className="desktopPill">
                 <CalendarIcon />
-                <span className={valueRange.to ? "desktopPillText" : "desktopPillPlaceholder"}>
-                  {valueRange.to ? formatDateShort(valueRange.to) : "Check-out Date"}
+                <span
+                  className={
+                    valueRange.to ? "desktopPillText" : "desktopPillPlaceholder"
+                  }
+                >
+                  {valueRange.to
+                    ? formatDateShort(valueRange.to)
+                    : "Check-out Date"}
                 </span>
               </div>
             </div>
@@ -185,7 +377,11 @@ function DesktopCalendar({
             <div className="desktopDatePills">
               <div className="desktopPill">
                 <CalendarIcon />
-                <span className={singleDate ? "desktopPillText" : "desktopPillPlaceholder"}>
+                <span
+                  className={
+                    singleDate ? "desktopPillText" : "desktopPillPlaceholder"
+                  }
+                >
                   {singleDate ? formatDateShort(singleDate) : "Select a Date"}
                 </span>
               </div>
@@ -205,7 +401,9 @@ function DesktopCalendar({
             }}
             numberOfMonths={2}
             weekStartsOn={0}
-            labels={{ weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] }}
+            labels={{
+              weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
+            }}
             className="desktopCalendar"
             variant="desktop"
             showNavigation={true}
@@ -218,14 +416,20 @@ function DesktopCalendar({
             allowPastDates={allowPastDates}
             allowSameDay={false}
             calendarType={"hotel"}
-            smartSuggestions={selectionMode === "range" ? suggestions : undefined}
+            smartSuggestions={
+              selectionMode === "range" ? suggestions : undefined
+            }
             showSmartSuggestions={true}
             filterPastSuggestions={true}
           />
 
           {/* Footer */}
           <div className="desktopFooter">
-            <button type="button" className="desktopClearBtn" onClick={clearDates}>
+            <button
+              type="button"
+              className="desktopClearBtn"
+              onClick={clearDates}
+            >
               Clear dates
             </button>
             <button type="button" className="desktopContinueBtn">
@@ -249,7 +453,7 @@ function MobileCalendar({
   selectionMode,
   allowPastDates,
   singleDate,
-  setSingleDate
+  setSingleDate,
 }: {
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
@@ -269,19 +473,23 @@ function MobileCalendar({
         {selectionMode === "range" ? (
           valueRange.from && valueRange.to ? (
             <>
-              <span className="dateRangeDate">{formatDateLong(valueRange.from)}</span>
+              <span className="dateRangeDate">
+                {formatDateLong(valueRange.from)}
+              </span>
               <span className="dateRangeArrow">→</span>
-              <span className="dateRangeDate">{formatDateLong(valueRange.to)}</span>
+              <span className="dateRangeDate">
+                {formatDateLong(valueRange.to)}
+              </span>
             </>
           ) : (
-            <span className="dateRangePlaceholder">Select your travel dates</span>
+            <span className="dateRangePlaceholder">
+              Select your travel dates
+            </span>
           )
+        ) : singleDate ? (
+          <span className="dateRangeDate">{formatDateLong(singleDate)}</span>
         ) : (
-          singleDate ? (
-            <span className="dateRangeDate">{formatDateLong(singleDate)}</span>
-          ) : (
-            <span className="dateRangePlaceholder">Select a date</span>
-          )
+          <span className="dateRangePlaceholder">Select a date</span>
         )}
       </div>
 
@@ -299,7 +507,9 @@ function MobileCalendar({
           }}
           numberOfMonths={12}
           weekStartsOn={0}
-          labels={{ weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] }}
+          labels={{
+            weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
+          }}
           className="mobileCalendar"
           variant="mobile"
           showNavigation={false}
@@ -322,7 +532,9 @@ function MobileCalendar({
         {hasLongStay && (
           <div className="longStayBanner">
             <span className="longStayEmoji">✨</span>
-            <span className="longStayText">Yay! You've unlocked Long Stay Benefits!</span>
+            <span className="longStayText">
+              Yay! You've unlocked Long Stay Benefits!
+            </span>
           </div>
         )}
       </div>
@@ -333,7 +545,8 @@ function MobileCalendar({
           Clear dates
         </button>
         <button type="button" className="continueBtn">
-          Continue{nights > 0 ? ` (${nights} Nights)` : ""}
+          Continue
+          {valueRange.from && valueRange.to ? ` (${nights} Nights)` : ""}
         </button>
       </div>
     </div>
@@ -344,19 +557,25 @@ function MobileCalendar({
    APP (responsive)
    ════════════════════════════════════════════════════ */
 export function App() {
-  const [variant, setVariant] = React.useState<"mobile" | "desktop">(getInitialVariant);
-  const [selectionMode, setSelectionMode] = React.useState<"single" | "range">("range");
+  const [variant, setVariant] = React.useState<"mobile" | "desktop">(
+    getInitialVariant
+  );
+  const [selectionMode, setSelectionMode] = React.useState<"single" | "range">(
+    "range"
+  );
   const [allowPastDates, setAllowPastDates] = React.useState(false);
 
   const [valueRange, setValueRange] = React.useState<CalendarRange>({
     from: new Date(2026, 0, 16),
-    to: new Date(2026, 0, 26)
+    to: new Date(2026, 0, 26),
   });
 
   const [singleDate, setSingleDate] = React.useState<Date | null>(null);
 
   const nights =
-    valueRange.from && valueRange.to ? nightsBetween(valueRange.from, valueRange.to) : 0;
+    valueRange.from && valueRange.to
+      ? nightsBetween(valueRange.from, valueRange.to)
+      : 0;
 
   const clearDates = () => {
     setValueRange({ from: null, to: null });
@@ -376,28 +595,46 @@ export function App() {
       {/* Control toggles */}
       <div
         style={{
-          position: "fixed", top: 12, right: 12, zIndex: 9999,
-          display: "flex", gap: 8, flexDirection: "column", alignItems: "flex-end"
+          position: "fixed",
+          top: 12,
+          right: 12,
+          zIndex: 9999,
+          display: "flex",
+          gap: 8,
+          flexDirection: "column",
+          alignItems: "flex-end",
         }}
       >
         <button
           type="button"
           onClick={toggleVariant}
           style={{
-            padding: "6px 14px", borderRadius: 999, border: "1px solid #ccc",
-            background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)"
+            padding: "6px 14px",
+            borderRadius: 999,
+            border: "1px solid #ccc",
+            background: "#fff",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
           }}
         >
           {variant === "desktop" ? "Switch to Mobile" : "Switch to Desktop"}
         </button>
         <button
           type="button"
-          onClick={() => setSelectionMode((m) => m === "range" ? "single" : "range")}
+          onClick={() =>
+            setSelectionMode((m) => (m === "range" ? "single" : "range"))
+          }
           style={{
-            padding: "6px 14px", borderRadius: 999, border: "1px solid #ccc",
-            background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)"
+            padding: "6px 14px",
+            borderRadius: 999,
+            border: "1px solid #ccc",
+            background: "#fff",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
           }}
         >
           Mode: {selectionMode === "range" ? "Range" : "Single"}
@@ -406,10 +643,14 @@ export function App() {
           type="button"
           onClick={() => setAllowPastDates((p) => !p)}
           style={{
-            padding: "6px 14px", borderRadius: 999, border: "1px solid #ccc",
+            padding: "6px 14px",
+            borderRadius: 999,
+            border: "1px solid #ccc",
             background: allowPastDates ? "#e6ffe6" : "#fff",
-            fontSize: 12, fontWeight: 600, cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)"
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
           }}
         >
           Past Dates: {allowPastDates ? "ON" : "OFF"}
