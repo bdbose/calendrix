@@ -1,11 +1,27 @@
 import { formatDateKey } from "./formatDateKey";
-import type { BlockedDates, CalendarType } from "./types";
+import type { BlockedDateLookup, CalendarType } from "./types";
 import { startOfDay } from "./dateUtils";
 
+function isEmpty(blockedDates?: BlockedDateLookup): boolean {
+  if (!blockedDates) return true;
+  return blockedDates instanceof Set
+    ? blockedDates.size === 0
+    : blockedDates.length === 0;
+}
+
+function has(blockedDates: BlockedDateLookup, key: string): boolean {
+  return blockedDates instanceof Set
+    ? blockedDates.has(key)
+    : blockedDates.includes(key);
+}
+
 /** Check if a single date is in the blocked list. */
-export function isDateBlocked(date: Date, blockedDates?: BlockedDates): boolean {
-  if (!blockedDates || blockedDates.length === 0) return false;
-  return blockedDates.includes(formatDateKey(date));
+export function isDateBlocked(
+  date: Date,
+  blockedDates?: BlockedDateLookup
+): boolean {
+  if (isEmpty(blockedDates)) return false;
+  return has(blockedDates!, formatDateKey(date));
 }
 
 /**
@@ -16,21 +32,20 @@ export function isDateBlocked(date: Date, blockedDates?: BlockedDates): boolean 
 export function hasBlockedDateInRange(
   start: Date,
   end: Date,
-  blockedDates?: BlockedDates,
+  blockedDates?: BlockedDateLookup,
   calendarType?: CalendarType
 ): boolean {
-  if (!blockedDates || blockedDates.length === 0) return false;
+  if (isEmpty(blockedDates)) return false;
   const cur = new Date(startOfDay(start));
   const endTime = startOfDay(end).getTime();
   const isHotelMode = calendarType === "hotel";
 
   while (cur.getTime() <= endTime) {
-    // In hotel mode, allow the end date to be blocked (checkout day)
     if (isHotelMode && cur.getTime() === endTime) {
       cur.setDate(cur.getDate() + 1);
       continue;
     }
-    if (blockedDates.includes(formatDateKey(cur))) return true;
+    if (has(blockedDates!, formatDateKey(cur))) return true;
     cur.setDate(cur.getDate() + 1);
   }
   return false;
@@ -42,19 +57,18 @@ export function hasBlockedDateInRange(
  */
 export function findFirstBlockedDateAfter(
   start: Date,
-  blockedDates?: BlockedDates
+  blockedDates?: BlockedDateLookup
 ): Date | null {
-  if (!blockedDates || blockedDates.length === 0) return null;
+  if (isEmpty(blockedDates)) return null;
 
   const cur = new Date(startOfDay(start));
-  cur.setDate(cur.getDate() + 1); // start checking from day after
+  cur.setDate(cur.getDate() + 1);
 
-  // Check up to 2 years ahead
   const maxDate = new Date(start);
   maxDate.setFullYear(maxDate.getFullYear() + 2);
 
   while (cur.getTime() <= maxDate.getTime()) {
-    if (blockedDates.includes(formatDateKey(cur))) {
+    if (has(blockedDates!, formatDateKey(cur))) {
       return new Date(cur);
     }
     cur.setDate(cur.getDate() + 1);
@@ -67,4 +81,3 @@ export function findFirstBlockedDateAfter(
 export function isBeforeToday(date: Date): boolean {
   return startOfDay(date).getTime() < startOfDay(new Date()).getTime();
 }
-

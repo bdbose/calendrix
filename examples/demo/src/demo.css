@@ -58,8 +58,8 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  border-radius: 4px;
-  background: #E8F5E9;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 241, 215, 0.7) 0%, rgba(255, 230, 187, 0.7) 100%);
   color: #373636;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
@@ -114,8 +114,7 @@ body {
 
 .desktopCard {
   display: flex;
-  width: 720px;
-  min-height: 520px;
+  width: 673px;
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 20px;
@@ -181,17 +180,19 @@ body {
 /* ── Main panel ── */
 .desktopMain {
   flex: 1;
-  padding: 20px 24px;
   display: flex;
   flex-direction: column;
 }
 
 .desktopTitle {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 500;
   color: #000;
-  margin-bottom: 12px;
+  padding: 24px 32px 20px;
   text-align: center;
+  border-bottom: 1px solid #ddd;
+  letter-spacing: -0.38px;
+  font-family: var(--font-primary);
 }
 
 /* Check-in / Check-out pills */
@@ -223,13 +224,18 @@ body {
   color: #aaa;
 }
 
-/* ── Desktop calendar customizations (font-family, renderDay sizing) ── */
+/* ── Desktop calendar customizations ── */
+.desktopCalendar {
+  padding: 16px 32px;
+}
+
 .desktopCalendar .rcss-cal-cell {
   font-family: var(--font-primary);
 }
 
 .desktopCalendar .rcss-cal-cell .calDayNum {
-  font-size: 14px;
+  font-size: 20px;
+  letter-spacing: -0.6px;
 }
 
 .desktopCalendar .calMonthHeader {
@@ -237,7 +243,7 @@ body {
 }
 
 .desktopCalendar .calMonthTitle {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 /* ── Desktop footer ── */
@@ -245,20 +251,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16px;
+  padding: 14px 32px;
   margin-top: auto;
-  border-top: 1px solid #eee;
+  background: #fff9ef;
+  border-top: 1px solid #ddd;
 }
 
-.desktopClearBtn {
-  background: transparent;
-  border: none;
-  padding: 8px 0;
-  color: #232323;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: underline;
-  cursor: pointer;
+.desktopFooterLabel {
+  font-size: 16px;
+  font-weight: 800;
+  color: #333;
   font-family: var(--font-primary);
 }
 
@@ -267,10 +269,10 @@ body {
   border: none;
   color: #fff;
   border-radius: 999px;
-  height: 42px;
-  padding: 0 28px;
+  height: 37px;
+  padding: 0 40px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   font-family: var(--font-primary);
   min-width: 180px;

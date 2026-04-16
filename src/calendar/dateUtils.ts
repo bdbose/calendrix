@@ -28,7 +28,11 @@ export function clampDate(date: Date, min?: Date, max?: Date) {
 
 export function addMonths(date: Date, months: number) {
   const d = new Date(date);
+  const dayOfMonth = d.getDate();
   d.setMonth(d.getMonth() + months);
+  if (d.getDate() !== dayOfMonth) {
+    d.setDate(0);
+  }
   return d;
 }
 

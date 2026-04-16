@@ -47,6 +47,7 @@ function getHolidayKey(d: Date) {
 
 /* ── Suggestions (now as SmartSuggestion[] data for the library prop) ── */
 const suggestions: SmartSuggestion[] = [
+  // January
   {
     label: "January 24-27",
     sub: "Republic Day Weekend",
@@ -55,21 +56,122 @@ const suggestions: SmartSuggestion[] = [
   },
   {
     label: "January 30 - February 2",
-    sub: "Republic Day Weekend",
+    sub: "Republic Day Extended",
     from: new Date(2026, 0, 30),
     to: new Date(2026, 1, 2),
   },
+  // February
   {
     label: "February 14-16",
     sub: "Valentine Weekend",
     from: new Date(2026, 1, 14),
     to: new Date(2026, 1, 16),
   },
+  // March
   {
-    label: "Good Friday 3rd to 5th April",
+    label: "March 13-15",
+    sub: "Holi Weekend",
+    from: new Date(2026, 2, 13),
+    to: new Date(2026, 2, 15),
+  },
+  {
+    label: "March 27-30",
+    sub: "Ugadi / Gudi Padwa",
+    from: new Date(2026, 2, 27),
+    to: new Date(2026, 2, 30),
+  },
+  // April
+  {
+    label: "April 3-5",
     sub: "Good Friday Weekend",
     from: new Date(2026, 3, 3),
     to: new Date(2026, 3, 5),
+  },
+  {
+    label: "April 14-16",
+    sub: "Ambedkar Jayanti / Baisakhi",
+    from: new Date(2026, 3, 14),
+    to: new Date(2026, 3, 16),
+  },
+  // May
+  {
+    label: "May 1-3",
+    sub: "May Day Weekend",
+    from: new Date(2026, 4, 1),
+    to: new Date(2026, 4, 3),
+  },
+  {
+    label: "May 23-25",
+    sub: "Buddha Purnima Weekend",
+    from: new Date(2026, 4, 23),
+    to: new Date(2026, 4, 25),
+  },
+  // June
+  {
+    label: "June 26-28",
+    sub: "Eid al-Adha Weekend",
+    from: new Date(2026, 5, 26),
+    to: new Date(2026, 5, 28),
+  },
+  // July
+  {
+    label: "July 17-19",
+    sub: "Muharram Weekend",
+    from: new Date(2026, 6, 17),
+    to: new Date(2026, 6, 19),
+  },
+  // August
+  {
+    label: "August 14-17",
+    sub: "Independence Day Long Weekend",
+    from: new Date(2026, 7, 14),
+    to: new Date(2026, 7, 17),
+  },
+  // September
+  {
+    label: "September 16-18",
+    sub: "Milad-un-Nabi Weekend",
+    from: new Date(2026, 8, 16),
+    to: new Date(2026, 8, 18),
+  },
+  // October
+  {
+    label: "October 2-4",
+    sub: "Gandhi Jayanti Weekend",
+    from: new Date(2026, 9, 2),
+    to: new Date(2026, 9, 4),
+  },
+  {
+    label: "October 20-22",
+    sub: "Dussehra",
+    from: new Date(2026, 9, 20),
+    to: new Date(2026, 9, 22),
+  },
+  // November
+  {
+    label: "November 7-9",
+    sub: "Diwali Weekend",
+    from: new Date(2026, 10, 7),
+    to: new Date(2026, 10, 9),
+  },
+  {
+    label: "November 14-16",
+    sub: "Children's Day Weekend",
+    from: new Date(2026, 10, 14),
+    to: new Date(2026, 10, 16),
+  },
+  // December
+  {
+    label: "December 25-28",
+    sub: "Christmas Weekend",
+    from: new Date(2026, 11, 25),
+    to: new Date(2026, 11, 28),
+  },
+  {
+    label: "December 31 - January 3",
+    sub: "New Year Getaway",
+    from: new Date(2026, 11, 31),
+    to: new Date(2027, 0, 3),
   },
 ];
 
@@ -79,12 +181,6 @@ const events: CalendarEvent[] = [
     start_date: "2026-01-24",
     end_date: "2026-01-26",
     name: "Republic Day",
-    specific_teams: "All",
-  },
-  {
-    start_date: "2026-02-14",
-    end_date: "2026-02-14",
-    name: "Valentine's",
     specific_teams: "All",
   },
   {
@@ -273,13 +369,15 @@ function renderDay({
   const icon = info?.dates[state.date.getDate()];
   return (
     <div className="calDay">
-      {/* {(state.eventLabels?.length ?? 0) > 0 && (
+      {(state.eventLabels?.length ?? 0) > 0 && (
         <div className="calEventLabels">
           {state.eventLabels!.map((lbl: string) => (
-            <span key={lbl} className="calEventLabel">{lbl}</span>
+            <span key={lbl} className="calEventLabel">
+              {lbl}
+            </span>
           ))}
         </div>
-      )} */}
+      )}
       <span className="calDayNum">{state.date.getDate()}</span>
       {icon && <span className="calDayIcon">{icon}</span>}
       {state.dayInfo && (
@@ -320,7 +418,6 @@ function DesktopCalendar({
   valueRange,
   setValueRange,
   nights,
-  clearDates,
   selectionMode,
   allowPastDates,
   singleDate,
@@ -329,7 +426,6 @@ function DesktopCalendar({
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
   nights: number;
-  clearDates: () => void;
   selectionMode: "single" | "range";
   allowPastDates: boolean;
   singleDate: Date | null;
@@ -338,55 +434,10 @@ function DesktopCalendar({
   return (
     <div className="desktopOverlay">
       <div className="desktopCard">
-        {/* ── Right main ── */}
+        {/* ── Main ── */}
         <div className="desktopMain">
           {/* Title */}
           <div className="desktopTitle">Select your travel dates</div>
-
-          {/* Check-in / Check-out pills */}
-          {selectionMode === "range" ? (
-            <div className="desktopDatePills">
-              <div className="desktopPill">
-                <CalendarIcon />
-                <span
-                  className={
-                    valueRange.from
-                      ? "desktopPillText"
-                      : "desktopPillPlaceholder"
-                  }
-                >
-                  {valueRange.from
-                    ? formatDateShort(valueRange.from)
-                    : "Check-in Date"}
-                </span>
-              </div>
-              <div className="desktopPill">
-                <CalendarIcon />
-                <span
-                  className={
-                    valueRange.to ? "desktopPillText" : "desktopPillPlaceholder"
-                  }
-                >
-                  {valueRange.to
-                    ? formatDateShort(valueRange.to)
-                    : "Check-out Date"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="desktopDatePills">
-              <div className="desktopPill">
-                <CalendarIcon />
-                <span
-                  className={
-                    singleDate ? "desktopPillText" : "desktopPillPlaceholder"
-                  }
-                >
-                  {singleDate ? formatDateShort(singleDate) : "Select a Date"}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Calendar */}
           <Calendar
@@ -399,7 +450,7 @@ function DesktopCalendar({
                 setSingleDate(v as Date | null);
               }
             }}
-            numberOfMonths={2}
+            numberOfMonths={1}
             weekStartsOn={0}
             labels={{
               weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
@@ -425,13 +476,7 @@ function DesktopCalendar({
 
           {/* Footer */}
           <div className="desktopFooter">
-            <button
-              type="button"
-              className="desktopClearBtn"
-              onClick={clearDates}
-            >
-              Clear dates
-            </button>
+            <span className="desktopFooterLabel">Select Dates</span>
             <button type="button" className="desktopContinueBtn">
               Continue{nights > 0 ? ` (${nights} Nights)` : ""}
             </button>
@@ -505,7 +550,7 @@ function MobileCalendar({
               setSingleDate(v as Date | null);
             }
           }}
-          numberOfMonths={12}
+          numberOfMonths={15}
           weekStartsOn={0}
           labels={{
             weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
@@ -525,7 +570,8 @@ function MobileCalendar({
           smartSuggestions={selectionMode === "range" ? suggestions : undefined}
           showSmartSuggestions={true}
           filterPastSuggestions={true}
-          initialMonthsToRender={3}
+          initialMonthsToRender={4}
+          pastMonthsCount={6}
         />
 
         {/* ── Long stay benefit ── */}
@@ -673,7 +719,6 @@ export function App() {
           valueRange={valueRange}
           setValueRange={setValueRange}
           nights={nights}
-          clearDates={clearDates}
           selectionMode={selectionMode}
           allowPastDates={allowPastDates}
           singleDate={singleDate}

@@ -1,20 +1,28 @@
 import { formatDateKey } from "./formatDateKey";
 import { startOfDay } from "./dateUtils";
-import type { MinNights, BlockedDates } from "./types";
+import type { MinNights, BlockedDateLookup } from "./types";
 
-/** Check if any blocked dates exist in the next N days from checkin. */
 function hasBlockedDatesInMinNightsRange(
   checkinDate: Date,
   minNights: number,
-  blockedDates?: BlockedDates
+  blockedDates?: BlockedDateLookup
 ): boolean {
-  if (!blockedDates || blockedDates.length === 0) return false;
+  if (!blockedDates) return false;
+  const empty =
+    blockedDates instanceof Set
+      ? blockedDates.size === 0
+      : blockedDates.length === 0;
+  if (empty) return false;
+
   const base = startOfDay(checkinDate).getTime();
   const msDay = 86_400_000;
   for (let i = 1; i <= minNights; i++) {
-    if (blockedDates.includes(formatDateKey(new Date(base + i * msDay)))) {
-      return true;
-    }
+    const key = formatDateKey(new Date(base + i * msDay));
+    const found =
+      blockedDates instanceof Set
+        ? blockedDates.has(key)
+        : blockedDates.includes(key);
+    if (found) return true;
   }
   return false;
 }
@@ -26,7 +34,7 @@ function hasBlockedDatesInMinNightsRange(
 export function getMinNights(
   checkinDate: Date,
   minNights?: MinNights,
-  blockedDates?: BlockedDates
+  blockedDates?: BlockedDateLookup
 ): number | null {
   if (!minNights) return null;
   const key = formatDateKey(checkinDate);
@@ -51,7 +59,7 @@ export function meetsMinNights(
   checkin: Date | null,
   checkout: Date | null,
   minNights?: MinNights,
-  blockedDates?: BlockedDates
+  blockedDates?: BlockedDateLookup
 ): boolean {
   if (!checkin || !checkout || !minNights) return true;
   const required = getMinNights(checkin, minNights, blockedDates);
@@ -66,7 +74,7 @@ export function meetsMinNights(
 export function getStrikethroughDates(
   checkin: Date | null,
   minNights?: MinNights,
-  blockedDates?: BlockedDates
+  blockedDates?: BlockedDateLookup
 ): string[] {
   if (!checkin || !minNights) return [];
   const required = getMinNights(checkin, minNights, blockedDates);

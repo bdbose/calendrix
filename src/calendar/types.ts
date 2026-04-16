@@ -17,6 +17,7 @@ export type CalendarEvent = {
 };
 
 export type BlockedDates = string[]; // "YYYY-MM-DD" strings
+export type BlockedDateLookup = BlockedDates | Set<string>;
 
 export type DayInfo = {
   date: string;            // "YYYY-MM-DD"
@@ -199,6 +200,8 @@ export type CalendarProps = {
   smartSuggestions?: SmartSuggestion[];
   /** Show or hide the smart suggestions panel. Default: true. */
   showSmartSuggestions?: boolean;
+  /** Title shown above the suggestions panel. Desktop default: "SMART SUGGESTIONS", Mobile default: "OUR SUGGESTIONS". */
+  smartSuggestionsTitle?: string;
   /** Automatically filter out suggestions whose `to` date is in the past. Default: true. */
   filterPastSuggestions?: boolean;
   /** Callback when a suggestion is selected. */
@@ -208,4 +211,7 @@ export type CalendarProps = {
 
   /** Number of months to render initially (rest load on scroll). Useful for mobile infinite scroll. */
   initialMonthsToRender?: number;
+
+  /** Number of past months available for upward scroll. When set, enables bidirectional infinite scroll. */
+  pastMonthsCount?: number;
 };

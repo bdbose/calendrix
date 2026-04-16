@@ -58,7 +58,7 @@ function useControllableState<T>({
       if (!isControlled) setUncontrolled(next);
       onChange?.(next);
     },
-    [isControlled, onChange]
+    [isControlled, onChange],
   );
 
   return [current, set] as const;
@@ -69,6 +69,16 @@ function inRangeInclusive(d: Date, min?: Date, max?: Date) {
   if (min && t < startOfDay(min).getTime()) return false;
   if (max && t > startOfDay(max).getTime()) return false;
   return true;
+}
+
+function getScrollParent(element: HTMLElement | null): HTMLElement | null {
+  let el: HTMLElement | null = element?.parentElement ?? null;
+  while (el) {
+    const { overflow, overflowY } = getComputedStyle(el);
+    if (/auto|scroll/.test(overflow + overflowY)) return el;
+    el = el.parentElement;
+  }
+  return document.documentElement;
 }
 
 export function Calendar(props: CalendarProps) {
@@ -97,7 +107,6 @@ export function Calendar(props: CalendarProps) {
     variant,
     showNavigation = true,
     "aria-label": ariaLabel = "Calendar",
-    // Calendrax features
     events,
     showEvents = true,
     blockedDates,
@@ -108,13 +117,13 @@ export function Calendar(props: CalendarProps) {
     calendarType,
     cellWidth,
     cellHeight,
-    // Smart Suggestions
     smartSuggestions,
     showSmartSuggestions = true,
+    smartSuggestionsTitle,
     filterPastSuggestions = true,
     onSuggestionSelect,
-    // Lazy loading
     initialMonthsToRender,
+    pastMonthsCount,
   } = props;
 
   const isHotelMode = calendarType === "hotel";
@@ -133,14 +142,33 @@ export function Calendar(props: CalendarProps) {
     mode === "range" ? (selectedAny as CalendarRange) : null;
 
   const initialMonth = React.useMemo(() => {
-    const base =
-      month ??
-      defaultMonth ??
-      (mode === "single" ? selectedSingle : selectedRange?.from) ??
-      new Date();
+    // If explicitly controlled, use that
+    if (month)
+      return startOfMonth(clampDate(startOfDay(month), minDate, maxDate));
+    if (defaultMonth)
+      return startOfMonth(
+        clampDate(startOfDay(defaultMonth), minDate, maxDate),
+      );
+
+    // If both check-in and check-out are present, show check-in month
+    const hasCompleteRange =
+      mode === "range" && selectedRange?.from && selectedRange?.to;
+    const hasSelectedSingle = mode === "single" && selectedSingle;
+
+    let base: Date;
+    if (hasCompleteRange) {
+      base = selectedRange!.from!;
+    } else if (hasSelectedSingle) {
+      base = selectedSingle!;
+    } else {
+      // Default: always start with current month
+      base = new Date();
+    }
+
     let result = startOfMonth(clampDate(startOfDay(base), minDate, maxDate));
-    // When past dates are not allowed, never open to a month before today
-    if (!allowPastDates) {
+    // Only clamp to current month when there's no explicit selection;
+    // if dates are already selected, show the check-in month even if it's in the past.
+    if (!allowPastDates && !hasCompleteRange && !hasSelectedSingle) {
       const currentMonth = startOfMonth(new Date());
       if (result.getTime() < currentMonth.getTime()) {
         result = currentMonth;
@@ -155,6 +183,7 @@ export function Calendar(props: CalendarProps) {
     mode,
     month,
     selectedRange?.from,
+    selectedRange?.to,
     selectedSingle,
   ]);
 
@@ -169,13 +198,19 @@ export function Calendar(props: CalendarProps) {
 
   const monthTitle = formatMonthTitle(visibleMonth, labels?.monthNames);
 
+  /* ─── Build months array (includes past months if pastMonthsCount is set) ─── */
+
+  const pastCount = pastMonthsCount ?? 0;
+
   const months = React.useMemo(() => {
     const out: Date[] = [];
-    for (let i = 0; i < Math.max(1, numberOfMonths); i++) {
+    for (let i = -pastCount; i < Math.max(1, numberOfMonths); i++) {
       out.push(startOfMonth(addMonths(visibleMonth, i)));
     }
     return out;
-  }, [numberOfMonths, visibleMonth]);
+  }, [numberOfMonths, visibleMonth, pastCount]);
+
+  const currentMonthIndex = pastCount;
 
   const canGoPrev = React.useMemo(() => {
     if (!minDate) return true;
@@ -200,22 +235,27 @@ export function Calendar(props: CalendarProps) {
 
   /* ─── Build derived maps (memoized) ─── */
 
+  const blockedDateSet = React.useMemo(
+    () => (blockedDates ? new Set(blockedDates) : undefined),
+    [blockedDates],
+  );
+
   const eventMap = React.useMemo(
     () => (events && showEvents ? buildEventMap(events) : undefined),
-    [events, showEvents]
+    [events, showEvents],
   );
 
   const dayInfoMap = React.useMemo(
     () => buildDayInfoMap(dayInfoArray),
-    [dayInfoArray]
+    [dayInfoArray],
   );
 
   const strikethroughDates = React.useMemo(
     () =>
       mode === "range" && selectedRange?.from && !selectedRange?.to
-        ? getStrikethroughDates(selectedRange.from, minNights, blockedDates)
+        ? getStrikethroughDates(selectedRange.from, minNights, blockedDateSet)
         : [],
-    [mode, selectedRange?.from, selectedRange?.to, minNights, blockedDates]
+    [mode, selectedRange?.from, selectedRange?.to, minNights, blockedDateSet],
   );
 
   /* ─── Hotel mode: checkout boundary ─── */
@@ -228,51 +268,127 @@ export function Calendar(props: CalendarProps) {
       selectedRange?.to
     )
       return null;
-    return findFirstBlockedDateAfter(selectedRange.from, blockedDates);
-  }, [isHotelMode, mode, selectedRange?.from, selectedRange?.to, blockedDates]);
+    return findFirstBlockedDateAfter(selectedRange.from, blockedDateSet);
+  }, [
+    isHotelMode,
+    mode,
+    selectedRange?.from,
+    selectedRange?.to,
+    blockedDateSet,
+  ]);
 
-  /* ─── Lazy month loading (infinite scroll) ─── */
+  /* ─── Bidirectional lazy month loading (infinite scroll) ─── */
 
   const totalMonthCount = months.length;
-  const effectiveInitial =
+
+  const effectiveInitialEnd =
     initialMonthsToRender != null && initialMonthsToRender > 0
-      ? Math.min(initialMonthsToRender, totalMonthCount)
+      ? Math.min(currentMonthIndex + initialMonthsToRender, totalMonthCount)
       : totalMonthCount;
 
-  const [renderedCount, setRenderedCount] = React.useState(effectiveInitial);
-  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const effectiveInitialStart =
+    initialMonthsToRender != null && initialMonthsToRender > 0
+      ? currentMonthIndex
+      : 0;
 
+  const [renderStart, setRenderStart] = React.useState(effectiveInitialStart);
+  const [renderEnd, setRenderEnd] = React.useState(effectiveInitialEnd);
+
+  const topSentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const monthsStackRef = React.useRef<HTMLDivElement | null>(null);
+  const scrollInfoRef = React.useRef<{
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
+  const prevRenderStartRef = React.useRef(renderStart);
+
+  // Restore scroll position after prepending past months
+  React.useLayoutEffect(() => {
+    if (
+      renderStart < prevRenderStartRef.current &&
+      scrollInfoRef.current &&
+      monthsStackRef.current
+    ) {
+      const scrollParent = getScrollParent(monthsStackRef.current);
+      if (scrollParent) {
+        const delta =
+          scrollParent.scrollHeight - scrollInfoRef.current.scrollHeight;
+        scrollParent.scrollTop = scrollInfoRef.current.scrollTop + delta;
+      }
+      scrollInfoRef.current = null;
+    }
+    prevRenderStartRef.current = renderStart;
+  }, [renderStart]);
+
+  // Bottom sentinel: load future months on scroll down
   React.useEffect(() => {
-    if (renderedCount >= totalMonthCount) return;
-    const sentinel = sentinelRef.current;
+    if (renderEnd >= totalMonthCount) return;
+    const sentinel = bottomSentinelRef.current;
     if (!sentinel) return;
 
-    // Feature-detect IntersectionObserver for old browsers
     if (typeof IntersectionObserver === "undefined") {
-      setRenderedCount(totalMonthCount);
+      setRenderEnd(totalMonthCount);
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setRenderedCount((prev) => Math.min(prev + 2, totalMonthCount));
+          setRenderEnd((prev) => Math.min(prev + 2, totalMonthCount));
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "200px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [renderedCount, totalMonthCount]);
+  }, [renderEnd, totalMonthCount]);
 
-  // Reset rendered count when initialMonthsToRender or total changes
+  // Top sentinel: load past months on scroll up
   React.useEffect(() => {
-    setRenderedCount(effectiveInitial);
-  }, [effectiveInitial]);
+    if (renderStart <= 0) return;
+    const sentinel = topSentinelRef.current;
+    if (!sentinel) return;
 
-  const visibleMonths = months.slice(0, renderedCount);
+    if (typeof IntersectionObserver === "undefined") {
+      setRenderStart(0);
+      return;
+    }
+
+    const stackEl = monthsStackRef.current;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          const scrollParent = stackEl ? getScrollParent(stackEl) : null;
+          if (scrollParent) {
+            scrollInfoRef.current = {
+              scrollHeight: scrollParent.scrollHeight,
+              scrollTop: scrollParent.scrollTop,
+            };
+          }
+          setRenderStart((prev) => Math.max(prev - 2, 0));
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [renderStart]);
+
+  // Reset rendered range when initialMonthsToRender or total changes
+  React.useEffect(() => {
+    setRenderStart(effectiveInitialStart);
+    setRenderEnd(effectiveInitialEnd);
+  }, [effectiveInitialStart, effectiveInitialEnd]);
+
+  const visibleMonths = months.slice(renderStart, renderEnd);
 
   /* ─── Smart Suggestions handler ─── */
+
+  const [pendingScrollMonth, setPendingScrollMonth] = React.useState<
+    string | null
+  >(null);
 
   const handleSuggestionSelect = React.useCallback(
     (suggestion: SmartSuggestion) => {
@@ -284,10 +400,83 @@ export function Calendar(props: CalendarProps) {
       } else {
         setSelectedAny(startOfDay(suggestion.from));
       }
+
+      const targetMonth = startOfMonth(suggestion.from);
+
+      // Desktop single-month: navigate to the month
+      if (numberOfMonths <= 1) {
+        setVisibleMonth(targetMonth);
+      }
+
+      // Mobile / multi-month: ensure month is rendered and scroll to it
+      if (numberOfMonths > 1 || pastCount > 0) {
+        const targetKey = `${targetMonth.getFullYear()}-${targetMonth.getMonth()}`;
+        const targetIdx = months.findIndex(
+          (m) =>
+            m.getFullYear() === targetMonth.getFullYear() &&
+            m.getMonth() === targetMonth.getMonth(),
+        );
+        if (targetIdx >= 0) {
+          // Expand render range to include the target month
+          if (targetIdx >= renderEnd) {
+            setRenderEnd(targetIdx + 1);
+          }
+          if (targetIdx < renderStart) {
+            setRenderStart(targetIdx);
+          }
+          setPendingScrollMonth(targetKey);
+        }
+      }
+
       onSuggestionSelect?.(suggestion);
     },
-    [mode, setSelectedAny, onSuggestionSelect]
+    [
+      mode,
+      setSelectedAny,
+      onSuggestionSelect,
+      numberOfMonths,
+      setVisibleMonth,
+      months,
+      renderEnd,
+      renderStart,
+      pastCount,
+    ],
   );
+
+  // Scroll to month section after it becomes rendered
+  React.useEffect(() => {
+    if (!pendingScrollMonth || !monthsStackRef.current) return;
+
+    requestAnimationFrame(() => {
+      const el = monthsStackRef.current?.querySelector(
+        `[data-month="${pendingScrollMonth}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setPendingScrollMonth(null);
+      }
+    });
+  }, [pendingScrollMonth, renderEnd, renderStart]);
+
+  // On initial mount for mobile/multi-month: scroll to the target month
+  const initialScrollDone = React.useRef(false);
+  React.useEffect(() => {
+    if (initialScrollDone.current) return;
+    if (numberOfMonths <= 1 && pastCount === 0) return;
+    if (!monthsStackRef.current) return;
+
+    const targetKey = `${visibleMonth.getFullYear()}-${visibleMonth.getMonth()}`;
+    requestAnimationFrame(() => {
+      const el = monthsStackRef.current?.querySelector(
+        `[data-month="${targetKey}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ block: "start" });
+        initialScrollDone.current = true;
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderEnd]);
 
   /* ─── isDisabled (enriched) ─── */
 
@@ -297,14 +486,12 @@ export function Calendar(props: CalendarProps) {
       if (isDateDisabled?.(d)) return true;
       if (!allowPastDates && isBeforeToday(d)) return true;
 
-      const dateBlocked = isDateBlocked(d, blockedDates);
+      const dateBlocked = isDateBlocked(d, blockedDateSet);
 
-      // Hotel mode: allow the first blocked date after check-in as checkout
       if (dateBlocked && isHotelMode && hotelCheckoutBoundary) {
-        if (isSameDay(d, hotelCheckoutBoundary)) return false; // allow this one
+        if (isSameDay(d, hotelCheckoutBoundary)) return false;
       }
 
-      // Hotel mode: block dates beyond the first blocked date when selecting checkout
       if (isHotelMode && hotelCheckoutBoundary && !dateBlocked) {
         if (
           startOfDay(d).getTime() > startOfDay(hotelCheckoutBoundary).getTime()
@@ -320,10 +507,10 @@ export function Calendar(props: CalendarProps) {
       maxDate,
       minDate,
       allowPastDates,
-      blockedDates,
+      blockedDateSet,
       isHotelMode,
       hotelCheckoutBoundary,
-    ]
+    ],
   );
 
   /* ─── isInSelectedRange ─── */
@@ -338,7 +525,7 @@ export function Calendar(props: CalendarProps) {
       const [mn, mx] = a <= b ? [a, b] : [b, a];
       return t >= mn && t <= mx;
     },
-    [mode, selectedRange?.from, selectedRange?.to]
+    [mode, selectedRange?.from, selectedRange?.to],
   );
 
   /* ─── pickDate (enriched with blocked-range, min-nights, same-day) ─── */
@@ -357,44 +544,38 @@ export function Calendar(props: CalendarProps) {
         to: null,
       }) as CalendarRange;
 
-      // No check-in yet, or both already set → start new selection
       if (!current.from || (current.from && current.to)) {
         setSelectedAny({ from: day, to: null });
         return;
       }
 
-      // Check if strikethrough (can't select)
       if (strikethroughDates.includes(formatDateKey(day))) {
         return;
       }
 
-      // Same-day logic
       if (isSameDay(day, current.from)) {
         if (allowSameDay) {
-          if (meetsMinNights(current.from, day, minNights, blockedDates)) {
+          if (meetsMinNights(current.from, day, minNights, blockedDateSet)) {
             setSelectedAny({ from: current.from, to: day });
           }
         }
         return;
       }
 
-      // Before check-in → move check-in
       if (day.getTime() < startOfDay(current.from).getTime()) {
         setSelectedAny({ from: day, to: null });
         return;
       }
 
-      // After check-in → validate range
       if (
-        hasBlockedDateInRange(current.from, day, blockedDates, calendarType)
+        hasBlockedDateInRange(current.from, day, blockedDateSet, calendarType)
       ) {
-        // Blocked dates between check-in and clicked date: start new selection
         setSelectedAny({ from: day, to: null });
         return;
       }
 
-      if (!meetsMinNights(current.from, day, minNights, blockedDates)) {
-        return; // doesn't meet min nights
+      if (!meetsMinNights(current.from, day, minNights, blockedDateSet)) {
+        return;
       }
 
       setSelectedAny({ from: current.from, to: day });
@@ -405,10 +586,10 @@ export function Calendar(props: CalendarProps) {
       setSelectedAny,
       allowSameDay,
       minNights,
-      blockedDates,
+      blockedDateSet,
       strikethroughDates,
       calendarType,
-    ]
+    ],
   );
 
   /* ─── Slot helpers ─── */
@@ -416,12 +597,12 @@ export function Calendar(props: CalendarProps) {
   const cn = React.useCallback(
     (slot: keyof NonNullable<CalendarProps["classNames"]>, fallback: string) =>
       [fallback, classNames?.[slot]].filter(Boolean).join(" "),
-    [classNames]
+    [classNames],
   );
 
   const st = React.useCallback(
     (slot: keyof NonNullable<CalendarProps["styles"]>) => styles?.[slot],
-    [styles]
+    [styles],
   );
 
   /* ─── Cell size CSS variables ─── */
@@ -463,6 +644,7 @@ export function Calendar(props: CalendarProps) {
             <SmartSuggestionsDesktop
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
+              title={smartSuggestionsTitle}
               onSelect={handleSuggestionSelect}
             />
           </aside>
@@ -484,218 +666,231 @@ export function Calendar(props: CalendarProps) {
             <SmartSuggestionsMobile
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
+              title={smartSuggestionsTitle}
               onSelect={handleSuggestionSelect}
             />
           ) : null}
-
-          {showNavigation && (
-            <div
-              className={cn("header", "rcss-cal-header")}
-              style={st("header")}
-            >
-              <button
-                type="button"
-                className={cn("nav", "rcss-cal-nav")}
-                style={st("nav")}
-                onClick={goPrev}
-                disabled={!canGoPrev}
-                aria-label={labels?.prevMonthLabel ?? "Previous month"}
-              >
-                ‹
-              </button>
+          <div className="desktop-cal-wrapper">
+            {showNavigation && (
               <div
-                className={cn("title", "rcss-cal-title")}
-                style={st("title")}
-                aria-label={ariaLabel}
+                className={cn("header", "rcss-cal-header")}
+                style={st("header")}
               >
-                {monthTitle}
-              </div>
-              <button
-                type="button"
-                className={cn("nav", "rcss-cal-nav")}
-                style={st("nav")}
-                onClick={goNext}
-                disabled={!canGoNext}
-                aria-label={labels?.nextMonthLabel ?? "Next month"}
-              >
-                ›
-              </button>
-            </div>
-          )}
-
-          {numberOfMonths <= 1 && (
-            <div
-              className={cn("weekdays", "rcss-cal-weekdays")}
-              style={st("weekdays")}
-              role="row"
-            >
-              {weekdayNames.map((wd) => (
+                <button
+                  type="button"
+                  className={cn("nav", "rcss-cal-nav")}
+                  style={st("nav")}
+                  onClick={goPrev}
+                  disabled={!canGoPrev}
+                  aria-label={labels?.prevMonthLabel ?? "Previous month"}
+                >
+                  ‹
+                </button>
                 <div
-                  key={wd}
-                  className={cn("weekday", "rcss-cal-weekday")}
-                  style={st("weekday")}
-                  role="columnheader"
+                  className={cn("title", "rcss-cal-title")}
+                  style={st("title")}
+                  aria-label={ariaLabel}
                 >
-                  {wd}
+                  {monthTitle}
                 </div>
-              ))}
-            </div>
-          )}
-
-          <div className="rcss-cal-monthsStack">
-            {visibleMonths.map((m) => {
-              const title = formatMonthTitle(m, labels?.monthNames);
-              const { days } = getMonthGrid(m, weekStartsOn);
-              return (
-                <section
-                  key={`${m.getFullYear()}-${m.getMonth()}`}
-                  className={cn("month", "rcss-cal-month")}
-                  style={st("month")}
+                <button
+                  type="button"
+                  className={cn("nav", "rcss-cal-nav")}
+                  style={st("nav")}
+                  onClick={goNext}
+                  disabled={!canGoNext}
+                  aria-label={labels?.nextMonthLabel ?? "Next month"}
                 >
-                  {numberOfMonths > 1 ? (
-                    renderMonthTitle ? (
-                      renderMonthTitle(m, title)
-                    ) : (
-                      <div className="rcss-cal-monthTitle">{title}</div>
-                    )
-                  ) : null}
-                  {numberOfMonths > 1 && (
-                    <div
-                      className={cn("weekdays", "rcss-cal-weekdays")}
-                      style={st("weekdays")}
-                      role="row"
-                    >
-                      {weekdayNames.map((wd) => (
-                        <div
-                          key={wd}
-                          className={cn("weekday", "rcss-cal-weekday")}
-                          style={st("weekday")}
-                          role="columnheader"
-                        >
-                          {wd}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  ›
+                </button>
+              </div>
+            )}
+
+            {numberOfMonths <= 1 && (
+              <div
+                className={cn("weekdays", "rcss-cal-weekdays")}
+                style={st("weekdays")}
+                role="row"
+              >
+                {weekdayNames.map((wd) => (
                   <div
-                    className={cn("grid", "rcss-cal-grid")}
-                    style={st("grid")}
-                    role="grid"
+                    key={wd}
+                    className={cn("weekday", "rcss-cal-weekday")}
+                    style={st("weekday")}
+                    role="columnheader"
                   >
-                    {days.map((d) => {
-                      const inMonth = isSameMonth(d, m);
-                      const rawBlocked = isDateBlocked(d, blockedDates);
-                      // In hotel mode, the checkout boundary date is NOT visually blocked
-                      const blocked =
-                        rawBlocked &&
-                        !(
-                          isHotelMode &&
-                          hotelCheckoutBoundary &&
-                          isSameDay(d, hotelCheckoutBoundary)
-                        );
-                      const pastBlocked = !allowPastDates && isBeforeToday(d);
-                      const disabled = isDisabled(d) || !inMonth;
-
-                      const isStrikethrough =
-                        inMonth &&
-                        strikethroughDates.includes(formatDateKey(d));
-
-                      const selected =
-                        mode === "single"
-                          ? !!selectedSingle && isSameDay(d, selectedSingle)
-                          : (!!selectedRange?.from &&
-                              !selectedRange?.to &&
-                              isSameDay(d, selectedRange.from)) ||
-                            (!!selectedRange?.from &&
-                              !!selectedRange?.to &&
-                              (isSameDay(d, selectedRange.from) ||
-                                isSameDay(d, selectedRange.to)));
-
-                      const inRange =
-                        mode === "range" ? isInSelectedRange(d) : false;
-                      const rangeStart =
-                        mode === "range" &&
-                        !!selectedRange?.from &&
-                        isSameDay(d, selectedRange.from);
-                      const rangeEnd =
-                        mode === "range" &&
-                        !!selectedRange?.to &&
-                        isSameDay(d, selectedRange.to);
-                      const today = isToday(d);
-
-                      const eventLabels = inMonth
-                        ? getEventLabels(d, eventMap)
-                        : [];
-                      const info = inMonth ? getDayInfo(d, dayInfoMap) : null;
-                      const minNightsReq = inMonth
-                        ? getMinNights(d, minNights, blockedDates)
-                        : null;
-
-                      const dayState = {
-                        date: d,
-                        inMonth,
-                        disabled,
-                        selected,
-                        inRange,
-                        rangeStart,
-                        rangeEnd,
-                        today,
-                        blockedByDate: blocked || pastBlocked,
-                        blockedByMinNights: isStrikethrough,
-                        eventLabels,
-                        dayInfo: info,
-                        minNightsRequired: minNightsReq,
-                      };
-
-                      const content = renderDay?.({ state: dayState }) ?? (
-                        <DefaultDayContent state={dayState} />
-                      );
-
-                      return (
-                        <button
-                          key={d.toISOString()}
-                          type="button"
-                          className={[
-                            cn("cell", "rcss-cal-cell"),
-                            inMonth ? "is-in-month" : "is-out-month",
-                            disabled ? "is-disabled" : "",
-                            selected ? "is-selected" : "",
-                            inRange ? "is-in-range" : "",
-                            rangeStart ? "is-range-start" : "",
-                            rangeEnd ? "is-range-end" : "",
-                            today ? "is-today" : "",
-                            blocked || pastBlocked ? "is-blocked" : "",
-                            isStrikethrough ? "is-strikethrough" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          style={st("cell")}
-                          onClick={() => {
-                            if (disabled) return;
-                            if (isStrikethrough) return;
-                            pickDate(d);
-                          }}
-                          disabled={disabled}
-                          aria-selected={selected}
-                        >
-                          {content}
-                        </button>
-                      );
-                    })}
+                    {wd}
                   </div>
-                </section>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            )}
 
-          {/* Infinite scroll sentinel */}
-          {renderedCount < totalMonthCount && (
-            <div
-              ref={sentinelRef}
-              className="rcss-cal-sentinel"
-              style={{ height: 1 }}
-            />
-          )}
+            <div className="rcss-cal-monthsStack" ref={monthsStackRef}>
+              {/* Top sentinel for loading past months */}
+              {renderStart > 0 && (
+                <div
+                  ref={topSentinelRef}
+                  className="rcss-cal-sentinel"
+                  style={{ height: 1 }}
+                />
+              )}
+
+              {visibleMonths.map((m) => {
+                const title = formatMonthTitle(m, labels?.monthNames);
+                const { days } = getMonthGrid(m, weekStartsOn);
+                const monthKey = `${m.getFullYear()}-${m.getMonth()}`;
+                return (
+                  <section
+                    key={monthKey}
+                    data-month={monthKey}
+                    className={cn("month", "rcss-cal-month")}
+                    style={st("month")}
+                  >
+                    {numberOfMonths > 1 || pastCount > 0 ? (
+                      renderMonthTitle ? (
+                        renderMonthTitle(m, title)
+                      ) : (
+                        <div className="rcss-cal-monthTitle">{title}</div>
+                      )
+                    ) : null}
+                    {(numberOfMonths > 1 || pastCount > 0) && (
+                      <div
+                        className={cn("weekdays", "rcss-cal-weekdays")}
+                        style={st("weekdays")}
+                        role="row"
+                      >
+                        {weekdayNames.map((wd) => (
+                          <div
+                            key={wd}
+                            className={cn("weekday", "rcss-cal-weekday")}
+                            style={st("weekday")}
+                            role="columnheader"
+                          >
+                            {wd}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div
+                      className={cn("grid", "rcss-cal-grid")}
+                      style={st("grid")}
+                      role="grid"
+                    >
+                      {days.map((d) => {
+                        const inMonth = isSameMonth(d, m);
+                        const rawBlocked = isDateBlocked(d, blockedDateSet);
+                        const blocked =
+                          rawBlocked &&
+                          !(
+                            isHotelMode &&
+                            hotelCheckoutBoundary &&
+                            isSameDay(d, hotelCheckoutBoundary)
+                          );
+                        const pastBlocked = !allowPastDates && isBeforeToday(d);
+                        const disabled = isDisabled(d) || !inMonth;
+
+                        const isStrikethrough =
+                          inMonth &&
+                          strikethroughDates.includes(formatDateKey(d));
+
+                        const selected =
+                          mode === "single"
+                            ? !!selectedSingle && isSameDay(d, selectedSingle)
+                            : (!!selectedRange?.from &&
+                                !selectedRange?.to &&
+                                isSameDay(d, selectedRange.from)) ||
+                              (!!selectedRange?.from &&
+                                !!selectedRange?.to &&
+                                (isSameDay(d, selectedRange.from) ||
+                                  isSameDay(d, selectedRange.to)));
+
+                        const inRange =
+                          mode === "range" ? isInSelectedRange(d) : false;
+                        const rangeStart =
+                          mode === "range" &&
+                          !!selectedRange?.from &&
+                          isSameDay(d, selectedRange.from);
+                        const rangeEnd =
+                          mode === "range" &&
+                          !!selectedRange?.to &&
+                          isSameDay(d, selectedRange.to);
+                        const today = isToday(d);
+
+                        const eventLabels = inMonth
+                          ? getEventLabels(d, eventMap)
+                          : [];
+                        const info = inMonth ? getDayInfo(d, dayInfoMap) : null;
+                        const minNightsReq = inMonth
+                          ? getMinNights(d, minNights, blockedDateSet)
+                          : null;
+
+                        const dayState = {
+                          date: d,
+                          inMonth,
+                          disabled,
+                          selected,
+                          inRange,
+                          rangeStart,
+                          rangeEnd,
+                          today,
+                          blockedByDate: blocked || pastBlocked,
+                          blockedByMinNights: isStrikethrough,
+                          eventLabels,
+                          dayInfo: info,
+                          minNightsRequired: minNightsReq,
+                        };
+
+                        const content = renderDay?.({ state: dayState }) ?? (
+                          <DefaultDayContent state={dayState} />
+                        );
+
+                        return (
+                          <button
+                            key={d.toISOString()}
+                            type="button"
+                            className={[
+                              cn("cell", "rcss-cal-cell"),
+                              inMonth ? "is-in-month" : "is-out-month",
+                              disabled ? "is-disabled" : "",
+                              selected ? "is-selected" : "",
+                              inRange ? "is-in-range" : "",
+                              rangeStart ? "is-range-start" : "",
+                              rangeEnd ? "is-range-end" : "",
+                              today ? "is-today" : "",
+                              blocked || pastBlocked ? "is-blocked" : "",
+                              isStrikethrough ? "is-strikethrough" : "",
+                              eventLabels.length > 0 ? "has-event" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            style={st("cell")}
+                            onClick={() => {
+                              if (disabled) return;
+                              if (isStrikethrough) return;
+                              pickDate(d);
+                            }}
+                            disabled={disabled}
+                            aria-selected={selected}
+                          >
+                            {content}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+
+              {/* Bottom sentinel for loading future months */}
+              {renderEnd < totalMonthCount && (
+                <div
+                  ref={bottomSentinelRef}
+                  className="rcss-cal-sentinel"
+                  style={{ height: 1 }}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -708,7 +903,7 @@ export function Calendar(props: CalendarProps) {
   );
 }
 
-/* ─── Default day content (replaces the plain <span>) ─── */
+/* ─── Default day content ─── */
 
 function DefaultDayContent({
   state,
@@ -724,13 +919,15 @@ function DefaultDayContent({
 }) {
   return (
     <div className="rcss-cal-dayContent">
-      {/* {state.eventLabels.length > 0 && (
+      {state.eventLabels.length > 0 && (
         <div className="rcss-cal-eventLabels">
           {state.eventLabels.map((lbl) => (
-            <span key={lbl} className="rcss-cal-eventLabel">{lbl}</span>
+            <span key={lbl} className="rcss-cal-eventLabel">
+              {lbl}
+            </span>
           ))}
         </div>
-      )} */}
+      )}
       <span className="rcss-cal-dayNum">{state.date.getDate()}</span>
       {state.dayInfo && (
         <span

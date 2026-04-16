@@ -9,6 +9,7 @@ export type {
   CalendarEvent,
   CalendarType,
   BlockedDates,
+  BlockedDateLookup,
   DayInfo,
   MinNights,
   SmartSuggestion
