@@ -1,6 +1,6 @@
 {
-  "name": "calendrix",
-  "version": "1.0.1",
+  "name": "next-calendrix",
+  "version": "2.2.0",
   "description": "A lightweight, headless React calendar component with range selection, hotel mode, blocked dates, min-nights, smart suggestions, and mobile/desktop variants.",
   "keywords": [
     "react",
@@ -13,21 +13,17 @@
     "react-calendar",
     "typescript"
   ],
-  "license": "MIT",
+  "homepage": "https://github.com/bdbose/calendrix#readme",
+  "bugs": {
+    "url": "https://github.com/bdbose/calendrix/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bdbose/calendrix"
+    "url": "git+https://github.com/bdbose/calendrix.git"
   },
+  "license": "MIT",
   "author": "bdbose",
   "type": "module",
-  "sideEffects": [
-    "**/*.css"
-  ],
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -39,6 +35,14 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "directories": {
+    "example": "examples"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsup && node scripts/add-use-client.js",
@@ -46,14 +50,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm run clean && npm run build"
   },
-  "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
-  },
   "devDependencies": {
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0"
-  }
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ]
 }
