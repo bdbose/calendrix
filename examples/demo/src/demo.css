@@ -385,6 +385,10 @@ body {
   gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
 }
 
 .dateRangeDate {

@@ -603,6 +603,10 @@
 
 .rcss-suggestions-mobile {
   margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
 }
 
 .rcss-suggestions-toggle {
