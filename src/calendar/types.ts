@@ -108,6 +108,83 @@ export type CalendarRenderDayArgs = {
   state: CalendarDayState;
 };
 
+export type MobileCalendarSheetProps = {
+  /** Title shown in the top bar. Default: "Select Dates". */
+  title?: string;
+  /** Called when the close (X) button is pressed. */
+  onClose?: () => void;
+
+  /** Selection mode. Default: "range". */
+  mode?: CalendarSelectionMode;
+  /** Controlled selected value. */
+  value?: CalendarValue | CalendarRange;
+  /** Default selected value (uncontrolled). */
+  defaultValue?: CalendarValue | CalendarRange;
+  /** Called when the selected value changes. */
+  onChange?: (next: CalendarValue | CalendarRange) => void;
+
+  /** Label for the check-in column. Default: "Check-in". */
+  checkInLabel?: string;
+  /** Label for the check-out column. Default: "Check-out". */
+  checkOutLabel?: string;
+  /** Label for the clear button. Default: "Clear Dates". */
+  clearLabel?: string;
+  /** Label for the continue button. Default: "Continue". */
+  continueLabel?: string;
+  /** Placeholder when no date is selected in single mode. Default: "Select a date". */
+  singleDatePlaceholder?: string;
+
+  /** Called when the continue button is pressed. Receives the current value. */
+  onContinue?: (value: CalendarValue | CalendarRange) => void;
+  /** Called when the clear button is pressed (after clearing internally). */
+  onClear?: () => void;
+
+  /** Custom date formatter for the check-in/check-out display. Default: "DD Mon YYYY". */
+  formatDate?: (d: Date) => string;
+
+  /** If nights >= this threshold and longStayContent is provided, the banner is shown. */
+  longStayThreshold?: number;
+  /** Content rendered in the long-stay banner below the calendar. */
+  longStayContent?: React.ReactNode;
+
+  /** Additional className for the root wrapper. */
+  className?: string;
+  /** Inline styles for the root wrapper. */
+  style?: React.CSSProperties;
+  /** Additional className passed to the inner Calendar component. */
+  calendarClassName?: string;
+  /** Override the entire footer. Pass `null` to hide it. */
+  footer?: React.ReactNode;
+
+  /* ─── Calendar passthrough props ─── */
+
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  numberOfMonths?: number;
+  events?: CalendarEvent[];
+  showEvents?: boolean;
+  blockedDates?: BlockedDates;
+  dayInfo?: DayInfo[];
+  minNights?: MinNights;
+  allowPastDates?: boolean;
+  allowSameDay?: boolean;
+  calendarType?: CalendarType;
+  cellWidth?: number;
+  cellHeight?: number;
+  isDateDisabled?: (date: Date) => boolean;
+  minDate?: Date;
+  maxDate?: Date;
+  labels?: CalendarLabels;
+  renderDay?: (args: CalendarRenderDayArgs) => React.ReactNode;
+  renderMonthTitle?: (month: Date, title: string) => React.ReactNode;
+  smartSuggestions?: SmartSuggestion[];
+  showSmartSuggestions?: boolean;
+  smartSuggestionsTitle?: string;
+  filterPastSuggestions?: boolean;
+  onSuggestionSelect?: (suggestion: SmartSuggestion) => void;
+  initialMonthsToRender?: number;
+  pastMonthsCount?: number;
+};
+
 export type CalendarProps = {
   /** Selection mode. Default: "single". */
   mode?: CalendarSelectionMode;

@@ -1,4 +1,5 @@
 export { Calendar } from "./calendar/Calendar";
+export { MobileCalendarSheet } from "./calendar/MobileCalendarSheet";
 export type {
   CalendarProps,
   CalendarValue,
@@ -12,7 +13,8 @@ export type {
   BlockedDateLookup,
   DayInfo,
   MinNights,
-  SmartSuggestion
+  SmartSuggestion,
+  MobileCalendarSheetProps,
 } from "./calendar/types";
 
 import "./styles.css";

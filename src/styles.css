@@ -132,6 +132,12 @@
   margin-bottom: 12px;
 }
 
+.rcss-variant-mobile .desktop-cal-wrapper {
+  margin-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .rcss-cal-sidebar {
   padding-top: 8px;
 }
@@ -197,6 +203,11 @@
 
 .rcss-cal-cell.is-today:not(.is-selected) {
   border-color: var(--rcss-border);
+}
+
+.rcss-variant-mobile .rcss-cal-cell.is-today:not(.is-selected):not(.is-in-range) {
+  background: rgba(255, 237, 199, 0.5);
+  border-color: rgba(255, 210, 130, 0.6);
 }
 
 /* ─── Event dates ─── */
@@ -432,6 +443,7 @@
   --rcss-accent-fg: #ffffff;
   --rcss-range-bg: #d6e6ff;
   --rcss-cell: 46px;
+  --rcss-cell-h: 58px;
   --rcss-gap: 2px;
 
   border: none;
@@ -462,11 +474,11 @@
 }
 
 .rcss-variant-mobile .rcss-cal-weekday {
-  font-size: 12px;
-  font-weight: 500;
-  color: #999;
+  font-size: 13px;
+  font-weight: 600;
+  color: #aaa;
   text-transform: uppercase;
-  padding: 8px 0;
+  padding: 10px 0;
 }
 
 .rcss-variant-mobile .rcss-cal-grid {
@@ -477,8 +489,8 @@
 
 .rcss-variant-mobile .rcss-cal-cell {
   width: 100%;
-  height: 46px;
-  border-radius: 999px;
+  height: var(--rcss-cell-h, 58px);
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 400;
   display: flex;
@@ -497,7 +509,7 @@
 }
 
 .rcss-variant-mobile .rcss-cal-cell.is-range-start {
-  border-radius: 999px 0 0 999px;
+  border-radius: 12px 0 0 12px;
   background: var(--rcss-range-bg);
 }
 
@@ -509,7 +521,7 @@
 }
 
 .rcss-variant-mobile .rcss-cal-cell.is-range-end {
-  border-radius: 0 999px 999px 0;
+  border-radius: 0 12px 12px 0;
   background: var(--rcss-range-bg);
 }
 
@@ -605,7 +617,7 @@
   margin-bottom: 8px;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 9;
   background: #fff;
 }
 
@@ -691,4 +703,187 @@
   font-weight: 600;
   color: #2563eb;
   white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MobileCalendarSheet — full-page mobile calendar shell
+   ═══════════════════════════════════════════════════════ */
+
+.rcss-mobile-sheet {
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  position: relative;
+  padding-bottom: 80px;
+}
+
+/* ── Top title bar ── */
+
+.rcss-mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+}
+
+.rcss-mobile-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #333;
+}
+
+.rcss-mobile-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.3px;
+}
+
+.rcss-mobile-topbar-spacer {
+  width: 32px;
+}
+
+/* ── Check-in / Check-out date header ── */
+
+.rcss-mobile-dateheader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 14px 20px;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 57px;
+  z-index: 15;
+  background: #fff;
+}
+
+.rcss-mobile-dateheader-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.rcss-mobile-dateheader-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #999;
+}
+
+.rcss-mobile-dateheader-label.rcss-active {
+  color: #333;
+}
+
+.rcss-mobile-dateheader-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #000;
+}
+
+.rcss-mobile-dateheader-arrow {
+  font-size: 16px;
+  color: #999;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+/* ── Calendar scroll area ── */
+
+.rcss-mobile-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 16px;
+}
+
+/* ── Long stay banner ── */
+
+.rcss-mobile-longstay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-top: 4px;
+}
+
+/* ── Footer ── */
+
+.rcss-mobile-footer {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 430px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+  z-index: 10;
+}
+
+.rcss-mobile-clear {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  color: #333;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rcss-mobile-continue {
+  background: rgba(55, 54, 54, 0.85);
+  border: none;
+  color: #fff;
+  border-radius: 999px;
+  height: 50px;
+  padding: 0 40px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  min-width: 200px;
+  transition: background 0.15s ease;
+}
+
+.rcss-mobile-continue:hover:not(:disabled) {
+  background: rgba(55, 54, 54, 1);
+}
+
+.rcss-mobile-continue.rcss-disabled,
+.rcss-mobile-continue:disabled {
+  background: rgba(55, 54, 54, 0.45);
+  cursor: default;
 }

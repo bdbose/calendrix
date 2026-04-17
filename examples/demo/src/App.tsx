@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Calendar } from "calendrix";
+import { Calendar, MobileCalendarSheet } from "calendrix";
 import type {
   CalendarRange,
   CalendarEvent,
@@ -272,22 +272,6 @@ const minNightsData: MinNights = {
 };
 
 /* ── Helpers ── */
-function formatDateLong(d: Date) {
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatDateShort(d: Date) {
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function nightsBetween(a: Date, b: Date) {
   return Math.round(
     Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)
@@ -489,13 +473,11 @@ function DesktopCalendar({
 }
 
 /* ════════════════════════════════════════════════════
-   MOBILE VIEW
+   MOBILE VIEW  (uses MobileCalendarSheet from lib)
    ════════════════════════════════════════════════════ */
 function MobileCalendar({
   valueRange,
   setValueRange,
-  nights,
-  clearDates,
   selectionMode,
   allowPastDates,
   singleDate,
@@ -503,100 +485,55 @@ function MobileCalendar({
 }: {
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
-  nights: number;
-  clearDates: () => void;
   selectionMode: "single" | "range";
   allowPastDates: boolean;
   singleDate: Date | null;
   setSingleDate: (d: Date | null) => void;
 }) {
-  const hasLongStay = nights >= 7;
-
   return (
-    <div className="mobilePage">
-      {/* ── Date range display ── */}
-      <div className="dateRangeHeader">
-        {selectionMode === "range" ? (
-          valueRange.from && valueRange.to ? (
-            <>
-              <span className="dateRangeDate">
-                {formatDateLong(valueRange.from)}
-              </span>
-              <span className="dateRangeArrow">→</span>
-              <span className="dateRangeDate">
-                {formatDateLong(valueRange.to)}
-              </span>
-            </>
-          ) : (
-            <span className="dateRangePlaceholder">
-              Select your travel dates
-            </span>
-          )
-        ) : singleDate ? (
-          <span className="dateRangeDate">{formatDateLong(singleDate)}</span>
-        ) : (
-          <span className="dateRangePlaceholder">Select a date</span>
-        )}
-      </div>
-
-      {/* ── Calendar ── */}
-      <div className="calendarScroll">
-        <Calendar
-          mode={selectionMode}
-          value={selectionMode === "range" ? valueRange : singleDate}
-          onChange={(v) => {
-            if (selectionMode === "range") {
-              setValueRange(v as CalendarRange);
-            } else {
-              setSingleDate(v as Date | null);
-            }
-          }}
-          numberOfMonths={15}
-          weekStartsOn={0}
-          labels={{
-            weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
-          }}
-          className="mobileCalendar"
-          variant="mobile"
-          showNavigation={false}
-          renderMonthTitle={renderMonthTitle}
-          renderDay={renderDay}
-          events={events}
-          blockedDates={blockedDates}
-          dayInfo={dayInfoData}
-          minNights={minNightsData}
-          allowPastDates={allowPastDates}
-          allowSameDay={false}
-          calendarType={"hotel"}
-          smartSuggestions={selectionMode === "range" ? suggestions : undefined}
-          showSmartSuggestions={true}
-          filterPastSuggestions={true}
-          initialMonthsToRender={4}
-          pastMonthsCount={6}
-        />
-
-        {/* ── Long stay benefit ── */}
-        {hasLongStay && (
-          <div className="longStayBanner">
-            <span className="longStayEmoji">✨</span>
-            <span className="longStayText">
-              Yay! You've unlocked Long Stay Benefits!
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* ── Footer ── */}
-      <div className="mobileFooter">
-        <button type="button" className="clearDatesBtn" onClick={clearDates}>
-          Clear dates
-        </button>
-        <button type="button" className="continueBtn">
-          Continue
-          {valueRange.from && valueRange.to ? ` (${nights} Nights)` : ""}
-        </button>
-      </div>
-    </div>
+    <MobileCalendarSheet
+      mode={selectionMode}
+      value={selectionMode === "range" ? valueRange : singleDate}
+      onChange={(v) => {
+        if (selectionMode === "range") {
+          setValueRange(v as CalendarRange);
+        } else {
+          setSingleDate(v as Date | null);
+        }
+      }}
+      onClear={() => {
+        setValueRange({ from: null, to: null });
+        setSingleDate(null);
+      }}
+      weekStartsOn={0}
+      labels={{
+        weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
+      }}
+      calendarClassName="mobileCalendar"
+      renderMonthTitle={renderMonthTitle}
+      renderDay={renderDay}
+      events={events}
+      blockedDates={blockedDates}
+      dayInfo={dayInfoData}
+      minNights={minNightsData}
+      allowPastDates={allowPastDates}
+      allowSameDay={false}
+      calendarType={"hotel"}
+      smartSuggestions={selectionMode === "range" ? suggestions : undefined}
+      showSmartSuggestions={true}
+      filterPastSuggestions={true}
+      initialMonthsToRender={4}
+      pastMonthsCount={6}
+      longStayThreshold={7}
+      longStayContent={
+        <>
+          <span className="longStayEmoji">✨</span>
+          <span className="longStayText">
+            Yay! You've unlocked Long Stay Benefits!
+          </span>
+        </>
+      }
+    />
   );
 }
 
@@ -623,11 +560,6 @@ export function App() {
     valueRange.from && valueRange.to
       ? nightsBetween(valueRange.from, valueRange.to)
       : 0;
-
-  const clearDates = () => {
-    setValueRange({ from: null, to: null });
-    setSingleDate(null);
-  };
 
   const toggleVariant = () => {
     const next = variant === "desktop" ? "mobile" : "desktop";
@@ -708,8 +640,6 @@ export function App() {
         <MobileCalendar
           valueRange={valueRange}
           setValueRange={setValueRange}
-          nights={nights}
-          clearDates={clearDates}
           selectionMode={selectionMode}
           allowPastDates={allowPastDates}
           singleDate={singleDate}
