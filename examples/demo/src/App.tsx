@@ -3,6 +3,7 @@ import { Calendar } from "calendrix";
 import type {
   CalendarRange,
   CalendarEvent,
+  CalendarValue,
   DayInfo,
   MinNights,
   SmartSuggestion,
@@ -443,7 +444,7 @@ function DesktopCalendar({
           <Calendar
             mode={selectionMode}
             value={selectionMode === "range" ? valueRange : singleDate}
-            onChange={(v) => {
+            onChange={(v: CalendarValue | CalendarRange) => {
               if (selectionMode === "range") {
                 setValueRange(v as CalendarRange);
               } else {
