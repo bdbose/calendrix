@@ -532,6 +532,7 @@ browserslist@^4.24.0:
 
 "calendrix@file:../..":
   version "2.2.0"
+  resolved "file:../.."
 
 caniuse-lite@^1.0.30001759:
   version "1.0.30001767"
