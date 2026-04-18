@@ -124,6 +124,7 @@ export function Calendar(props: CalendarProps) {
     onSuggestionSelect,
     initialMonthsToRender,
     pastMonthsCount,
+    _suggestionHandlerRef,
   } = props;
 
   const isHotelMode = calendarType === "hotel";
@@ -442,6 +443,13 @@ export function Calendar(props: CalendarProps) {
       pastCount,
     ],
   );
+
+  // Expose handler to parent (MobileCalendarSheet) via ref
+  React.useEffect(() => {
+    if (_suggestionHandlerRef) {
+      _suggestionHandlerRef.current = handleSuggestionSelect;
+    }
+  }, [_suggestionHandlerRef, handleSuggestionSelect]);
 
   // Scroll to month section after it becomes rendered
   React.useEffect(() => {

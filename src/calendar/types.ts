@@ -291,4 +291,9 @@ export type CalendarProps = {
 
   /** Number of past months available for upward scroll. When set, enables bidirectional infinite scroll. */
   pastMonthsCount?: number;
+
+  /** @internal — Used by MobileCalendarSheet to get the suggestion handler from Calendar. */
+  _suggestionHandlerRef?: React.MutableRefObject<
+    ((suggestion: SmartSuggestion) => void) | null
+  >;
 };

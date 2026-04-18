@@ -1,10 +1,11 @@
 import * as React from "react";
 import { Calendar } from "./Calendar";
+import { SmartSuggestionsMobile } from "./SmartSuggestions";
 import type {
-  CalendarProps,
   CalendarRange,
   CalendarValue,
   MobileCalendarSheetProps,
+  SmartSuggestion,
 } from "./types";
 
 function defaultFormatDate(d: Date): string {
@@ -110,6 +111,11 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
     longStayContent != null &&
     nights >= longStayThreshold;
 
+  // Ref to Calendar's internal suggestion handler (for scroll-to-month + lazy expand)
+  const suggestionHandlerRef = React.useRef<
+    ((s: SmartSuggestion) => void) | null
+  >(null);
+
   // Handlers
   const handleClear = React.useCallback(() => {
     const empty =
@@ -197,6 +203,22 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
 
       {/* ── Calendar scroll area ── */}
       <div className="rcss-mobile-scroll">
+        {/* Suggestions rendered here as direct child of scroll container for sticky */}
+        {smartSuggestions &&
+        smartSuggestions.length > 0 &&
+        showSmartSuggestions ? (
+          <SmartSuggestionsMobile
+            suggestions={smartSuggestions}
+            filterPast={filterPastSuggestions}
+            title={smartSuggestionsTitle}
+            onSelect={(s) => {
+              // Delegate to Calendar's internal handler for scroll-to-month + lazy expand
+              suggestionHandlerRef.current?.(s);
+              onSuggestionSelect?.(s);
+            }}
+          />
+        ) : null}
+
         <Calendar
           mode={mode}
           value={current}
@@ -218,8 +240,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           allowSameDay={allowSameDay}
           calendarType={calendarType}
           smartSuggestions={smartSuggestions}
-          showSmartSuggestions={showSmartSuggestions}
-          smartSuggestionsTitle={smartSuggestionsTitle}
+          showSmartSuggestions={false}
           filterPastSuggestions={filterPastSuggestions}
           onSuggestionSelect={onSuggestionSelect}
           initialMonthsToRender={initialMonthsToRender}
@@ -229,6 +250,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           maxDate={maxDate}
           cellWidth={cellWidth}
           cellHeight={cellHeight}
+          _suggestionHandlerRef={suggestionHandlerRef}
         />
 
         {showLongStay && (

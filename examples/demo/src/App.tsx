@@ -353,7 +353,7 @@ function renderDay({
   const info = holidaysByMonth[key];
   const icon = info?.dates[state.date.getDate()];
   return (
-    <div className="calDay">
+    <div className={`calDay${icon ? " calDay--holiday" : ""}`}>
       {(state.eventLabels?.length ?? 0) > 0 && (
         <div className="calEventLabels">
           {state.eventLabels!.map((lbl: string) => (
