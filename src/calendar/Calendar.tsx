@@ -81,6 +81,33 @@ function getScrollParent(element: HTMLElement | null): HTMLElement | null {
   return document.documentElement;
 }
 
+/** IntersectionObserver `root` accepts null for viewport. Map documentElement → null. */
+function ioRoot(scrollParent: HTMLElement | null): Element | null {
+  if (!scrollParent || scrollParent === document.documentElement) return null;
+  return scrollParent;
+}
+
+/**
+ * Scroll the nearest scroll container so `monthEl` aligns with its top.
+ * More reliable than scrollIntoView for nested scroll containers because it
+ * targets only the inner scroll area (not the page).
+ */
+function scrollMonthToTop(
+  monthEl: Element,
+  stackEl: HTMLElement,
+  behavior: ScrollBehavior = "auto",
+) {
+  const scrollParent = getScrollParent(stackEl);
+  if (!scrollParent || scrollParent === document.documentElement) {
+    (monthEl as HTMLElement).scrollIntoView({ block: "start", behavior });
+    return;
+  }
+  const monthRect = monthEl.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const targetTop = scrollParent.scrollTop + (monthRect.top - parentRect.top);
+  scrollParent.scrollTo({ top: targetTop, behavior });
+}
+
 export function Calendar(props: CalendarProps) {
   const {
     mode = "single",
@@ -333,13 +360,16 @@ export function Calendar(props: CalendarProps) {
       return;
     }
 
+    const stackEl = monthsStackRef.current;
+    const scrollParent = stackEl ? getScrollParent(stackEl) : null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
           setRenderEnd((prev) => Math.min(prev + 2, totalMonthCount));
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "200px", root: ioRoot(scrollParent) },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -357,11 +387,11 @@ export function Calendar(props: CalendarProps) {
     }
 
     const stackEl = monthsStackRef.current;
+    const scrollParent = stackEl ? getScrollParent(stackEl) : null;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          const scrollParent = stackEl ? getScrollParent(stackEl) : null;
           if (scrollParent) {
             scrollInfoRef.current = {
               scrollHeight: scrollParent.scrollHeight,
@@ -371,7 +401,7 @@ export function Calendar(props: CalendarProps) {
           setRenderStart((prev) => Math.max(prev - 2, 0));
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "200px", root: ioRoot(scrollParent) },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -454,13 +484,12 @@ export function Calendar(props: CalendarProps) {
   // Scroll to month section after it becomes rendered
   React.useEffect(() => {
     if (!pendingScrollMonth || !monthsStackRef.current) return;
+    const stack = monthsStackRef.current;
 
     requestAnimationFrame(() => {
-      const el = monthsStackRef.current?.querySelector(
-        `[data-month="${pendingScrollMonth}"]`,
-      );
+      const el = stack.querySelector(`[data-month="${pendingScrollMonth}"]`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        scrollMonthToTop(el, stack, "smooth");
         setPendingScrollMonth(null);
       }
     });
@@ -471,20 +500,56 @@ export function Calendar(props: CalendarProps) {
   React.useEffect(() => {
     if (initialScrollDone.current) return;
     if (numberOfMonths <= 1 && pastCount === 0) return;
-    if (!monthsStackRef.current) return;
+    const stack = monthsStackRef.current;
+    if (!stack) return;
 
     const targetKey = `${visibleMonth.getFullYear()}-${visibleMonth.getMonth()}`;
     requestAnimationFrame(() => {
-      const el = monthsStackRef.current?.querySelector(
-        `[data-month="${targetKey}"]`,
-      );
+      const el = stack.querySelector(`[data-month="${targetKey}"]`);
       if (el) {
-        el.scrollIntoView({ block: "start" });
+        scrollMonthToTop(el, stack);
         initialScrollDone.current = true;
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderEnd]);
+
+  // When the selected value's month changes externally (after initial scroll),
+  // navigate back to the previously-selected month so it's visible.
+  const lastSelectedMonthRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!initialScrollDone.current) return;
+    if (numberOfMonths <= 1 && pastCount === 0) return;
+    if (!monthsStackRef.current) return;
+
+    let target: Date | null = null;
+    if (mode === "range" && selectedRange?.from) {
+      target = selectedRange.from;
+    } else if (mode === "single" && selectedSingle) {
+      target = selectedSingle;
+    }
+    if (!target) {
+      lastSelectedMonthRef.current = null;
+      return;
+    }
+
+    const targetMonth = startOfMonth(target);
+    const targetKey = `${targetMonth.getFullYear()}-${targetMonth.getMonth()}`;
+    if (lastSelectedMonthRef.current === targetKey) return;
+    lastSelectedMonthRef.current = targetKey;
+
+    const targetIdx = months.findIndex(
+      (m) =>
+        m.getFullYear() === targetMonth.getFullYear() &&
+        m.getMonth() === targetMonth.getMonth(),
+    );
+    if (targetIdx < 0) return;
+
+    if (targetIdx >= renderEnd) setRenderEnd(targetIdx + 1);
+    if (targetIdx < renderStart) setRenderStart(targetIdx);
+    setPendingScrollMonth(targetKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, selectedRange?.from, selectedSingle]);
 
   /* ─── isDisabled (enriched) ─── */
 
@@ -653,6 +718,7 @@ export function Calendar(props: CalendarProps) {
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
               title={smartSuggestionsTitle}
+              blockedDates={blockedDateSet}
               onSelect={handleSuggestionSelect}
             />
           </aside>
@@ -675,6 +741,7 @@ export function Calendar(props: CalendarProps) {
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
               title={smartSuggestionsTitle}
+              blockedDates={blockedDateSet}
               onSelect={handleSuggestionSelect}
             />
           ) : null}

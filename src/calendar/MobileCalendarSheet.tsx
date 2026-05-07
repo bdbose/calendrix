@@ -116,6 +116,12 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
     ((s: SmartSuggestion) => void) | null
   >(null);
 
+  // Build blocked-date set for filtering suggestions that overlap blocked dates
+  const blockedDateSet = React.useMemo(
+    () => (blockedDates ? new Set(blockedDates) : undefined),
+    [blockedDates],
+  );
+
   // Handlers
   const handleClear = React.useCallback(() => {
     const empty =
@@ -211,6 +217,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
             suggestions={smartSuggestions}
             filterPast={filterPastSuggestions}
             title={smartSuggestionsTitle}
+            blockedDates={blockedDateSet}
             onSelect={(s) => {
               // Delegate to Calendar's internal handler for scroll-to-month + lazy expand
               suggestionHandlerRef.current?.(s);

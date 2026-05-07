@@ -108,6 +108,11 @@
   color: var(--rcss-accent-fg);
 }
 
+/* Single-date selection (no range) — fully rounded on all edges */
+.rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
+  border-radius: 999px;
+}
+
 .rcss-cal-cell:disabled,
 .rcss-cal-cell.is-disabled {
   opacity: 0.4;
@@ -164,7 +169,7 @@
 
 .rcss-cal-monthTitle {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 4px 0;
 }
 
@@ -339,7 +344,7 @@
   flex: 1;
   text-align: center;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
   color: #000;
   letter-spacing: -0.38px;
 }
@@ -369,7 +374,7 @@
 
 .rcss-variant-desktop .rcss-cal-weekday {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   color: #000;
   text-transform: uppercase;
   padding: 8px 0;
@@ -433,8 +438,14 @@
 .rcss-variant-desktop .rcss-cal-cell.is-selected {
   background: var(--rcss-accent);
   color: var(--rcss-accent-fg);
-  font-weight: 600;
+  font-weight: 500;
   border-color: var(--rcss-accent);
+}
+
+/* Single-date selection on desktop — fully rounded */
+.rcss-variant-desktop
+  .rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
+  border-radius: 999px;
 }
 
 /* ─── Variant: mobile ─── */
@@ -476,7 +487,7 @@
 
 .rcss-variant-mobile .rcss-cal-weekday {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: #aaa;
   text-transform: uppercase;
   padding: 10px 0;
@@ -536,7 +547,13 @@
 .rcss-variant-mobile .rcss-cal-cell.is-selected {
   background: var(--rcss-accent);
   color: var(--rcss-accent-fg);
-  font-weight: 600;
+  font-weight: 500;
+}
+
+/* Single-date selection on mobile — fully rounded */
+.rcss-variant-mobile
+  .rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
+  border-radius: 999px;
 }
 
 /* ─── Smart Suggestions (desktop sidebar) ─── */
@@ -547,7 +564,7 @@
 
 .rcss-suggestions-title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.27px;
   color: #333;
   margin-bottom: 18px;
@@ -560,7 +577,7 @@
 
 .rcss-suggestions-month-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: #999;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -596,7 +613,7 @@
 }
 
 .rcss-suggestion-label {
-  font-weight: 500;
+  font-weight: 400;
   color: #5f5e5e;
   white-space: nowrap;
   font-size: 14px;
@@ -637,7 +654,7 @@
 
 .rcss-suggestions-toggle-text {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   color: #333;
   text-transform: uppercase;
@@ -667,7 +684,7 @@
   align-items: center;
   padding: 6px 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -701,7 +718,7 @@
 
 .rcss-suggestion-select {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: #2563eb;
   white-space: nowrap;
 }

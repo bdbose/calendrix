@@ -1,12 +1,14 @@
 import * as React from "react";
 import type { SmartSuggestion } from "./types";
 import { startOfDay } from "./dateUtils";
+import { formatDateKey } from "./formatDateKey";
 
 export type SmartSuggestionsProps = {
   suggestions: SmartSuggestion[];
   filterPast?: boolean;
   variant?: "mobile" | "desktop";
   title?: string;
+  blockedDates?: Set<string>;
   onSelect: (suggestion: SmartSuggestion) => void;
 };
 
@@ -17,6 +19,33 @@ const MONTH_NAMES = [
 
 function isPastSuggestion(s: SmartSuggestion): boolean {
   return startOfDay(s.to).getTime() < startOfDay(new Date()).getTime();
+}
+
+function suggestionOverlapsBlocked(
+  s: SmartSuggestion,
+  blocked: Set<string> | undefined,
+): boolean {
+  if (!blocked || blocked.size === 0) return false;
+  const start = startOfDay(s.from).getTime();
+  const end = startOfDay(s.to).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end)) return false;
+  for (let t = start; t <= end; t += 24 * 60 * 60 * 1000) {
+    const d = new Date(t);
+    if (blocked.has(formatDateKey(d))) return true;
+  }
+  return false;
+}
+
+function applyFilters(
+  suggestions: SmartSuggestion[],
+  filterPast: boolean,
+  blocked: Set<string> | undefined,
+): SmartSuggestion[] {
+  return suggestions.filter((s) => {
+    if (filterPast && isPastSuggestion(s)) return false;
+    if (suggestionOverlapsBlocked(s, blocked)) return false;
+    return true;
+  });
 }
 
 type MonthGroup = { key: string; label: string; items: SmartSuggestion[] };
@@ -41,11 +70,10 @@ export function SmartSuggestionsDesktop({
   suggestions,
   filterPast = true,
   title = "SMART SUGGESTIONS",
+  blockedDates,
   onSelect
 }: Omit<SmartSuggestionsProps, "variant">) {
-  const filtered = filterPast
-    ? suggestions.filter((s) => !isPastSuggestion(s))
-    : suggestions;
+  const filtered = applyFilters(suggestions, filterPast, blockedDates);
 
   if (filtered.length === 0) return null;
 
@@ -79,13 +107,12 @@ export function SmartSuggestionsMobile({
   suggestions,
   filterPast = true,
   title = "OUR SUGGESTIONS",
+  blockedDates,
   onSelect
 }: Omit<SmartSuggestionsProps, "variant">) {
   const [open, setOpen] = React.useState(false);
 
-  const filtered = filterPast
-    ? suggestions.filter((s) => !isPastSuggestion(s))
-    : suggestions;
+  const filtered = applyFilters(suggestions, filterPast, blockedDates);
 
   if (filtered.length === 0) return null;
 
