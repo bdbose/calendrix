@@ -110,7 +110,12 @@
 
 /* Single-date selection (no range) — fully rounded on all edges */
 .rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
-  border-radius: 999px;
+  border-radius: 12px;
+}
+
+/* Range mode with only start selected — fully rounded */
+.rcss-range-partial .rcss-cal-cell.is-range-start.is-selected {
+  border-radius: 12px;
 }
 
 .rcss-cal-cell:disabled,
@@ -121,7 +126,7 @@
 
 .rcss-cal-shell {
   display: flex;
-  gap: 24px;
+  /* gap: 24px; */
 }
 
 .rcss-cal-months {
@@ -132,13 +137,14 @@
 
 .desktop-cal-wrapper {
   width: 100%;
-  margin-left: 12px;
+  box-sizing: border-box;
+  padding: 0 12px;
   margin-top: 24px;
   margin-bottom: 12px;
 }
 
 .rcss-variant-mobile .desktop-cal-wrapper {
-  margin-left: 0;
+  padding: 0;
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -151,7 +157,7 @@
   border-left: 1px solid #ddd;
   padding: 16px 24px;
   min-width: 220px;
-  max-height: 350px;
+  max-height: 377px;
   overflow-y: auto;
 }
 
@@ -185,7 +191,7 @@
 }
 
 .rcss-cal-cell.is-range-start {
-  border-radius: 999px 0 0 999px;
+  border-radius: 12px 0 0 12px;
   background: var(--rcss-range-bg);
 }
 
@@ -196,7 +202,7 @@
 }
 
 .rcss-cal-cell.is-range-end {
-  border-radius: 0 999px 999px 0;
+  border-radius: 0 12px 12px 0;
   background: var(--rcss-range-bg);
 }
 
@@ -206,12 +212,7 @@
   /* border-radius: 999px; */
 }
 
-.rcss-cal-cell.is-today:not(.is-selected) {
-  border-color: var(--rcss-border);
-}
-
-.rcss-variant-mobile
-  .rcss-cal-cell.is-today:not(.is-selected):not(.is-in-range) {
+.rcss-cal-cell.is-today:not(.is-selected):not(.is-in-range):not(.is-range-start):not(.is-range-end) {
   background: rgba(255, 237, 199, 0.5);
   border-color: rgba(255, 210, 130, 0.6);
 }
@@ -337,7 +338,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
 }
 
 .rcss-variant-desktop .rcss-cal-title {
@@ -408,28 +409,28 @@
 }
 
 .rcss-variant-desktop .rcss-cal-cell.is-range-start {
-  border-radius: 8px 0 0 8px;
+  border-radius: 10px 0 0 10px;
   background: var(--rcss-accent);
   color: var(--rcss-accent-fg);
 }
 
 .rcss-variant-desktop .rcss-cal-cell.is-range-start.is-selected {
   background: var(--rcss-accent);
-  border-radius: 8px 0 0 8px;
+  border-radius: 10px 0 0 10px;
   position: relative;
   z-index: 1;
   border-color: var(--rcss-accent);
 }
 
 .rcss-variant-desktop .rcss-cal-cell.is-range-end {
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 10px 10px 0;
   background: var(--rcss-accent);
 }
 
 .rcss-variant-desktop .rcss-cal-cell.is-range-end.is-selected {
   background: var(--rcss-accent);
   color: var(--rcss-accent-fg);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 10px 10px 0;
   position: relative;
   z-index: 1;
   border-color: var(--rcss-accent);
@@ -445,7 +446,12 @@
 /* Single-date selection on desktop — fully rounded */
 .rcss-variant-desktop
   .rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
-  border-radius: 999px;
+  border-radius: 10px;
+}
+
+/* Range mode with only start selected on desktop — fully rounded */
+.rcss-variant-desktop.rcss-range-partial .rcss-cal-cell.is-range-start.is-selected {
+  border-radius: 10px;
 }
 
 /* ─── Variant: mobile ─── */
@@ -553,7 +559,12 @@
 /* Single-date selection on mobile — fully rounded */
 .rcss-variant-mobile
   .rcss-cal-cell.is-selected:not(.is-range-start):not(.is-range-end):not(.is-in-range) {
-  border-radius: 999px;
+  border-radius: 12px;
+}
+
+/* Range mode with only start selected on mobile — fully rounded */
+.rcss-variant-mobile.rcss-range-partial .rcss-cal-cell.is-range-start.is-selected {
+  border-radius: 12px;
 }
 
 /* ─── Smart Suggestions (desktop sidebar) ─── */
@@ -613,10 +624,9 @@
 }
 
 .rcss-suggestion-label {
-  font-weight: 400;
-  color: #5f5e5e;
-  white-space: nowrap;
-  font-size: 14px;
+  font-weight: 600;
+  color: #363636;
+  font-size: 15px;
 }
 
 .rcss-suggestion-dot {
@@ -625,18 +635,20 @@
 }
 
 .rcss-suggestion-sub {
-  color: #5f5e5e;
-  font-size: 12px;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 /* ─── Smart Suggestions (mobile toggle + panel) ─── */
 
 .rcss-suggestions-mobile {
-  margin-bottom: 8px;
+  margin-bottom: 0;
   position: sticky;
   top: -4px;
-  z-index: 9;
+  z-index: 16;
   background: #fff;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.07);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .rcss-suggestions-toggle {
@@ -644,17 +656,16 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 12px 4px;
+  padding: 12px 15px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid #eee;
   cursor: pointer;
   font-family: inherit;
 }
 
 .rcss-suggestions-toggle-text {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.06em;
   color: #333;
   text-transform: uppercase;
@@ -671,8 +682,9 @@
 }
 
 .rcss-suggestions-panel {
-  padding: 12px 4px 8px;
+  padding: 8px 12px 12px;
   display: flex;
+  flex-direction: row;
   gap: 10px;
   overflow-x: auto;
   border-bottom: 1px solid #eee;
@@ -696,14 +708,13 @@
 
 .rcss-suggestion-card {
   flex: 0 0 auto;
-  min-width: 180px;
+  min-width: 190px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
   border: 1px solid #d0d0d0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   cursor: pointer;
   font-family: inherit;
@@ -711,16 +722,31 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-.rcss-suggestion-card-left {
+.rcss-suggestion-card-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .rcss-suggestion-select {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #2563eb;
   white-space: nowrap;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+
+.rcss-suggestion-card.rcss-active {
+  background: #fff9ef;
+  border-color: #F59E0B;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.rcss-suggestion-card.rcss-active .rcss-suggestion-select {
+  color: #92400E;
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -793,12 +819,12 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 14px 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid #eee;
   position: sticky;
   top: 57px;
   z-index: 15;
-  background: #fff;
+  background: #fff9ef;
 }
 
 .rcss-mobile-dateheader-col {
@@ -810,7 +836,7 @@
 }
 
 .rcss-mobile-dateheader-label {
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 500;
   color: #999;
 }
@@ -820,16 +846,17 @@
 }
 
 .rcss-mobile-dateheader-value {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 600;
   color: #000;
 }
 
 .rcss-mobile-dateheader-arrow {
-  font-size: 16px;
+  font-size: 22px;
   color: #999;
-  padding: 0 12px;
+  padding: 0 20px;
   flex-shrink: 0;
+  letter-spacing: 4px;
 }
 
 /* ── Calendar scroll area ── */

@@ -43,11 +43,16 @@ body {
   line-height: 1;
 }
 
-/* Holiday cells get the same orange gradient as event cells */
-.rcss-cal-cell:has(.calDay--holiday):not(.is-selected):not(.is-blocked) {
+/* Holiday cells — no border */
+.rcss-cal-cell:has(.calDay--holiday) {
+  border: none;
+}
+
+/* Holiday cells — golden to white gradient */
+.rcss-cal-cell:has(.calDay--holiday):not(.is-selected):not(.is-today):not(.is-in-range):not(.is-range-start):not(.is-range-end) {
   background: linear-gradient(
     to bottom,
-    rgba(251, 146, 60, 0.6),
+    rgba(253, 186, 116, 0.6),
     rgba(255, 255, 255, 0.6)
   );
 }

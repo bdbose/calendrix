@@ -160,19 +160,33 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
         <span className="rcss-mobile-topbar-spacer" />
       </div>
 
+      {/* ── Our Suggestions ── */}
+      {smartSuggestions &&
+      smartSuggestions.length > 0 &&
+      showSmartSuggestions ? (
+        <SmartSuggestionsMobile
+          suggestions={smartSuggestions}
+          filterPast={filterPastSuggestions}
+          title={smartSuggestionsTitle}
+          blockedDates={blockedDateSet}
+          value={rangeValue}
+          onSelect={(s) => {
+            suggestionHandlerRef.current?.(s);
+            onSuggestionSelect?.(s);
+          }}
+        />
+      ) : null}
+
       {/* ── Check-in / Check-out header ── */}
       <div className="rcss-mobile-dateheader">
         {mode === "range" ? (
           <>
             <div className="rcss-mobile-dateheader-col">
-              <span
-                className={
-                  "rcss-mobile-dateheader-label" +
-                  (rangeValue.from ? " rcss-active" : "")
-                }
-              >
-                {checkInLabel}
-              </span>
+              {!rangeValue.from && (
+                <span className="rcss-mobile-dateheader-label">
+                  {checkInLabel}
+                </span>
+              )}
               {rangeValue.from && (
                 <span className="rcss-mobile-dateheader-value">
                   {formatDate(rangeValue.from)}
@@ -181,14 +195,11 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
             </div>
             <span className="rcss-mobile-dateheader-arrow">&rarr;</span>
             <div className="rcss-mobile-dateheader-col">
-              <span
-                className={
-                  "rcss-mobile-dateheader-label" +
-                  (rangeValue.to ? " rcss-active" : "")
-                }
-              >
-                {checkOutLabel}
-              </span>
+              {!rangeValue.to && (
+                <span className="rcss-mobile-dateheader-label">
+                  {checkOutLabel}
+                </span>
+              )}
               {rangeValue.to && (
                 <span className="rcss-mobile-dateheader-value">
                   {formatDate(rangeValue.to)}
@@ -209,23 +220,6 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
 
       {/* ── Calendar scroll area ── */}
       <div className="rcss-mobile-scroll">
-        {/* Suggestions rendered here as direct child of scroll container for sticky */}
-        {smartSuggestions &&
-        smartSuggestions.length > 0 &&
-        showSmartSuggestions ? (
-          <SmartSuggestionsMobile
-            suggestions={smartSuggestions}
-            filterPast={filterPastSuggestions}
-            title={smartSuggestionsTitle}
-            blockedDates={blockedDateSet}
-            onSelect={(s) => {
-              // Delegate to Calendar's internal handler for scroll-to-month + lazy expand
-              suggestionHandlerRef.current?.(s);
-              onSuggestionSelect?.(s);
-            }}
-          />
-        ) : null}
-
         <Calendar
           mode={mode}
           value={current}

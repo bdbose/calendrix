@@ -17,27 +17,84 @@ const holidaysByMonth: Record<
   { count: number; dates: Record<number, string> }
 > = {
   "2026-0": {
-    count: 3,
+    count: 2,
     dates: {
-      26: "🇮🇳", // Republic Day
+      14: "Makar Sankranti",
+      26: "Republic Day",
     },
   },
   "2026-1": {
-    count: 1,
+    count: 2,
     dates: {
-      14: "❤️", // Valentine's Day
+      19: "Maha Shivratri",
+      26: "Holi Eve",
     },
   },
   "2026-2": {
-    count: 1,
+    count: 3,
     dates: {
-      3: "🫟",
+      2: "Holi",
+      28: "Ram Navami",
+      31: "Eid ul-Fitr",
     },
   },
   "2026-3": {
+    count: 3,
+    dates: {
+      3: "Good Friday",
+      5: "Easter",
+      14: "Ambedkar Jayanti",
+    },
+  },
+  "2026-4": {
+    count: 2,
+    dates: {
+      1: "Labour Day",
+      19: "Buddha Purnima",
+    },
+  },
+  "2026-5": {
     count: 1,
     dates: {
-      3: "✝",
+      8: "Eid ul-Adha",
+    },
+  },
+  "2026-7": {
+    count: 2,
+    dates: {
+      15: "Independence Day",
+      23: "Janmashtami",
+    },
+  },
+  "2026-8": {
+    count: 2,
+    dates: {
+      7: "Ganesh Chaturthi",
+      17: "Onam",
+    },
+  },
+  "2026-9": {
+    count: 3,
+    dates: {
+      2: "Gandhi Jayanti",
+      15: "Dussehra",
+      29: "Maharishi Valmiki Jayanti",
+    },
+  },
+  "2026-10": {
+    count: 4,
+    dates: {
+      1: "Diwali",
+      2: "Govardhan Puja",
+      3: "Bhai Dooj",
+      14: "Children's Day",
+    },
+  },
+  "2026-11": {
+    count: 2,
+    dates: {
+      25: "Christmas",
+      31: "New Year's Eve",
     },
   },
 };
@@ -198,14 +255,43 @@ const events: CalendarEvent[] = [
   },
 ];
 
-const blockedDates = [
-  "2026-01-10",
-  "2026-01-11",
-  "2026-02-20",
-  "2026-02-21",
-  "2026-03-11",
-  "2026-03-12",
+const BASE_BLOCKED_DATES = [
+  // January — cluster around 10th (triggers 9th-unlock demo: check-in Jan 2 → day8=Jan9 open, day9=Jan10 blocked)
+  "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13",
+  // February
+  "2026-02-07", "2026-02-08",
+  "2026-02-20", "2026-02-21", "2026-02-22",
+  // March
+  "2026-03-11", "2026-03-12",
   "2026-03-15", // Hotel mode test: March 14 has minNights=2, but 15th is blocked → minNights waived
+  "2026-03-22", "2026-03-23",
+  // April
+  "2026-04-10", "2026-04-11", "2026-04-12",
+  "2026-04-24", "2026-04-25",
+  // May
+  "2026-05-05", "2026-05-06", "2026-05-07",
+  "2026-05-16", "2026-05-17",
+  // June
+  "2026-06-12", "2026-06-13", "2026-06-14",
+  "2026-06-21", "2026-06-22",
+  // July
+  "2026-07-03", "2026-07-04",
+  "2026-07-18", "2026-07-19", "2026-07-20",
+  // August
+  "2026-08-02", "2026-08-03",
+  "2026-08-11", "2026-08-12",
+  // September
+  "2026-09-05", "2026-09-06", "2026-09-07",
+  "2026-09-20", "2026-09-21",
+  // October
+  "2026-10-09", "2026-10-10", "2026-10-11",
+  "2026-10-25", "2026-10-26",
+  // November
+  "2026-11-06", "2026-11-07",
+  "2026-11-21", "2026-11-22", "2026-11-23",
+  // December
+  "2026-12-06", "2026-12-07", "2026-12-08",
+  "2026-12-19", "2026-12-20",
 ];
 
 const dayInfoData: DayInfo[] = [
@@ -276,6 +362,16 @@ function nightsBetween(a: Date, b: Date) {
   return Math.round(
     Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)
   );
+}
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
 }
 
 /* ── getVariantFromURL ── */
@@ -364,7 +460,6 @@ function renderDay({
         </div>
       )}
       <span className="calDayNum">{state.date.getDate()}</span>
-      {icon && <span className="calDayIcon">{icon}</span>}
       {state.dayInfo && (
         <span
           className="calDayInfo"
@@ -407,6 +502,7 @@ function DesktopCalendar({
   allowPastDates,
   singleDate,
   setSingleDate,
+  blockedDates,
 }: {
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
@@ -415,6 +511,7 @@ function DesktopCalendar({
   allowPastDates: boolean;
   singleDate: Date | null;
   setSingleDate: (d: Date | null) => void;
+  blockedDates: string[];
 }) {
   return (
     <div className="desktopOverlay">
@@ -482,6 +579,7 @@ function MobileCalendar({
   allowPastDates,
   singleDate,
   setSingleDate,
+  blockedDates,
 }: {
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
@@ -489,6 +587,7 @@ function MobileCalendar({
   allowPastDates: boolean;
   singleDate: Date | null;
   setSingleDate: (d: Date | null) => void;
+  blockedDates: string[];
 }) {
   return (
     <MobileCalendarSheet
@@ -560,6 +659,21 @@ export function App() {
     valueRange.from && valueRange.to
       ? nightsBetween(valueRange.from, valueRange.to)
       : 0;
+
+  const dynamicBlockedDates = React.useMemo(() => {
+    if (!valueRange.from || !valueRange.to) return BASE_BLOCKED_DATES;
+    const day8 = addDays(valueRange.from, 7);
+    const day9 = addDays(valueRange.from, 8);
+    const key8 = toDateKey(day8);
+    const key9 = toDateKey(day9);
+    const ninthBlocked = BASE_BLOCKED_DATES.includes(key9);
+    const eighthOpen = !BASE_BLOCKED_DATES.includes(key8);
+    const eighthSelected = toDateKey(valueRange.to) === key8;
+    if (ninthBlocked && eighthOpen && eighthSelected) {
+      return BASE_BLOCKED_DATES.filter((d) => d !== key9);
+    }
+    return BASE_BLOCKED_DATES;
+  }, [valueRange.from, valueRange.to]);
 
   const toggleVariant = () => {
     const next = variant === "desktop" ? "mobile" : "desktop";
@@ -644,6 +758,7 @@ export function App() {
           allowPastDates={allowPastDates}
           singleDate={singleDate}
           setSingleDate={setSingleDate}
+          blockedDates={dynamicBlockedDates}
         />
       ) : (
         <DesktopCalendar
@@ -654,6 +769,7 @@ export function App() {
           allowPastDates={allowPastDates}
           singleDate={singleDate}
           setSingleDate={setSingleDate}
+          blockedDates={dynamicBlockedDates}
         />
       )}
     </>
