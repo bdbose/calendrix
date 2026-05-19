@@ -1,6 +1,6 @@
 import * as React from "react";
-import type { SmartSuggestion } from "./types";
-import { startOfDay } from "./dateUtils";
+import type { CalendarRange, SmartSuggestion } from "./types";
+import { isSameDay, startOfDay } from "./dateUtils";
 import { formatDateKey } from "./formatDateKey";
 
 export type SmartSuggestionsProps = {
@@ -10,6 +10,7 @@ export type SmartSuggestionsProps = {
   title?: string;
   blockedDates?: Set<string>;
   onSelect: (suggestion: SmartSuggestion) => void;
+  value?: CalendarRange | null;
 };
 
 const MONTH_NAMES = [
@@ -108,9 +109,25 @@ export function SmartSuggestionsMobile({
   filterPast = true,
   title = "OUR SUGGESTIONS",
   blockedDates,
-  onSelect
+  onSelect,
+  value,
 }: Omit<SmartSuggestionsProps, "variant">) {
   const [open, setOpen] = React.useState(false);
+  const [activeKey, setActiveKey] = React.useState<string | null>(null);
+  const activeSuggestion = React.useRef<SmartSuggestion | null>(null);
+
+  React.useEffect(() => {
+    if (!activeSuggestion.current || !activeKey) return;
+    const { from, to } = activeSuggestion.current;
+    const matches =
+      value?.from && value?.to &&
+      isSameDay(value.from, from) &&
+      isSameDay(value.to, to);
+    if (!matches) {
+      setActiveKey(null);
+      activeSuggestion.current = null;
+    }
+  }, [value, activeKey]);
 
   const filtered = applyFilters(suggestions, filterPast, blockedDates);
 
@@ -142,24 +159,31 @@ export function SmartSuggestionsMobile({
         <div className="rcss-suggestions-panel">
           {groups.map((group) => (
             <React.Fragment key={group.key}>
-              <div className="rcss-suggestions-month-chip">{group.label}</div>
-              {group.items.map((s) => (
-                <button
-                  key={`${s.label}-${s.sub}`}
-                  className="rcss-suggestion-card"
-                  type="button"
-                  onClick={() => {
-                    onSelect(s);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="rcss-suggestion-card-left">
-                    <div className="rcss-suggestion-label">{s.label}</div>
+              {group.items.map((s) => {
+                const key = `${s.label}-${s.sub}`;
+                const isActive = activeKey === key;
+                return (
+                  <button
+                    key={key}
+                    className={"rcss-suggestion-card" + (isActive ? " rcss-active" : "")}
+                    type="button"
+                    onClick={() => {
+                      setActiveKey(key);
+                      activeSuggestion.current = s;
+                      onSelect(s);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="rcss-suggestion-card-header">
+                      <span className="rcss-suggestion-label">{s.label}</span>
+                      <span className="rcss-suggestion-select">
+                        {isActive ? "Selected" : "Select"}
+                      </span>
+                    </div>
                     <div className="rcss-suggestion-sub">{s.sub}</div>
-                  </div>
-                  <span className="rcss-suggestion-select">Select</span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </React.Fragment>
           ))}
         </div>

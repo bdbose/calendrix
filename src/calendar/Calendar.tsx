@@ -698,6 +698,9 @@ export function Calendar(props: CalendarProps) {
       className={[
         cn("root", "rcss-calendar"),
         variant ? `rcss-variant-${variant}` : "",
+        mode === "range" && selectedRange?.from && !selectedRange?.to
+          ? "rcss-range-partial"
+          : "",
         className,
       ]
         .filter(Boolean)
@@ -854,15 +857,25 @@ export function Calendar(props: CalendarProps) {
                       {days.map((d) => {
                         const inMonth = isSameMonth(d, m);
                         const rawBlocked = isDateBlocked(d, blockedDateSet);
-                        const blocked =
-                          rawBlocked &&
-                          !(
-                            isHotelMode &&
-                            hotelCheckoutBoundary &&
-                            isSameDay(d, hotelCheckoutBoundary)
-                          );
-                        const pastBlocked = !allowPastDates && isBeforeToday(d);
-                        const disabled = isDisabled(d) || !inMonth;
+                        // In hotel mode, the selected checkout may be a blocked date.
+                        // Once `to` is set, hotelCheckoutBoundary resets to null, so we
+                        // must also exempt the selected-to date (if it was blocked) from
+                        // the "blocked" display so it stays visually valid as checkout.
+                        const isSelectedBlockedCheckout =
+                          isHotelMode &&
+                          mode === "range" &&
+                          !!selectedRange?.to &&
+                          isSameDay(d, selectedRange.to) &&
+                          rawBlocked;
+                        const isHotelBoundary =
+                          isSelectedBlockedCheckout ||
+                          (isHotelMode &&
+                            !!hotelCheckoutBoundary &&
+                            isSameDay(d, hotelCheckoutBoundary));
+                        const blocked = rawBlocked && !isHotelBoundary;
+                        const pastBlocked = !isHotelBoundary && !allowPastDates && isBeforeToday(d);
+                        const disabled =
+                          (!isHotelBoundary && isDisabled(d)) || !inMonth;
 
                         const isStrikethrough =
                           inMonth &&
@@ -926,7 +939,7 @@ export function Calendar(props: CalendarProps) {
                             className={[
                               cn("cell", "rcss-cal-cell"),
                               inMonth ? "is-in-month" : "is-out-month",
-                              disabled ? "is-disabled" : "",
+                              disabled && !blocked && !pastBlocked ? "is-disabled" : "",
                               selected ? "is-selected" : "",
                               inRange ? "is-in-range" : "",
                               rangeStart ? "is-range-start" : "",
@@ -940,11 +953,11 @@ export function Calendar(props: CalendarProps) {
                               .join(" ")}
                             style={st("cell")}
                             onClick={() => {
-                              if (disabled) return;
+                              if (disabled || blocked || pastBlocked) return;
                               if (isStrikethrough) return;
                               pickDate(d);
                             }}
-                            disabled={disabled}
+                            disabled={disabled && !blocked && !pastBlocked}
                             aria-selected={selected}
                           >
                             {content}
