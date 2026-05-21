@@ -152,6 +152,7 @@ export function Calendar(props: CalendarProps) {
     initialMonthsToRender,
     pastMonthsCount,
     _suggestionHandlerRef,
+    _hidePerMonthWeekdays,
   } = props;
 
   const isHotelMode = calendarType === "hotel";
@@ -272,6 +273,18 @@ export function Calendar(props: CalendarProps) {
     () => (events && showEvents ? buildEventMap(events) : undefined),
     [events, showEvents],
   );
+
+  const eventCountInMonth = React.useMemo(() => {
+    if (!eventMap || !showEvents) return 0;
+    const y = visibleMonth.getFullYear();
+    const m = visibleMonth.getMonth();
+    let count = 0;
+    for (const key of eventMap.keys()) {
+      const [ky, km] = key.split("-").map(Number);
+      if (ky === y && km - 1 === m) count++;
+    }
+    return count;
+  }, [eventMap, visibleMonth, showEvents]);
 
   const dayInfoMap = React.useMemo(
     () => buildDayInfoMap(dayInfoArray),
@@ -754,33 +767,48 @@ export function Calendar(props: CalendarProps) {
                 className={cn("header", "rcss-cal-header")}
                 style={st("header")}
               >
-                <button
-                  type="button"
-                  className={cn("nav", "rcss-cal-nav")}
-                  style={st("nav")}
-                  onClick={goPrev}
-                  disabled={!canGoPrev}
-                  aria-label={labels?.prevMonthLabel ?? "Previous month"}
-                >
-                  ‹
-                </button>
-                <div
-                  className={cn("title", "rcss-cal-title")}
-                  style={st("title")}
-                  aria-label={ariaLabel}
-                >
-                  {monthTitle}
+                <div className="rcss-cal-header-left" aria-label={ariaLabel}>
+                  {renderMonthTitle ? (
+                    renderMonthTitle(visibleMonth, monthTitle)
+                  ) : (
+                    <>
+                      <div
+                        className={cn("title", "rcss-cal-title")}
+                        style={st("title")}
+                      >
+                        {monthTitle}
+                      </div>
+                      {eventCountInMonth > 0 && (
+                        <span className="rcss-cal-event-badge">
+                          {eventCountInMonth}{" "}
+                          {labels?.eventsLabel ?? "Holidays"}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  className={cn("nav", "rcss-cal-nav")}
-                  style={st("nav")}
-                  onClick={goNext}
-                  disabled={!canGoNext}
-                  aria-label={labels?.nextMonthLabel ?? "Next month"}
-                >
-                  ›
-                </button>
+                <div className="rcss-cal-header-nav">
+                  <button
+                    type="button"
+                    className={cn("nav", "rcss-cal-nav")}
+                    style={st("nav")}
+                    onClick={goPrev}
+                    disabled={!canGoPrev}
+                    aria-label={labels?.prevMonthLabel ?? "Previous month"}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className={cn("nav", "rcss-cal-nav")}
+                    style={st("nav")}
+                    onClick={goNext}
+                    disabled={!canGoNext}
+                    aria-label={labels?.nextMonthLabel ?? "Next month"}
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
             )}
 
@@ -831,7 +859,7 @@ export function Calendar(props: CalendarProps) {
                         <div className="rcss-cal-monthTitle">{title}</div>
                       )
                     ) : null}
-                    {(numberOfMonths > 1 || pastCount > 0) && (
+                    {(numberOfMonths > 1 || pastCount > 0) && !_hidePerMonthWeekdays && (
                       <div
                         className={cn("weekdays", "rcss-cal-weekdays")}
                         style={st("weekdays")}

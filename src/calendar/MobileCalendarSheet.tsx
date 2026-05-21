@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Calendar } from "./Calendar";
+import { defaultWeekdayNamesShort } from "./dateUtils";
 import { SmartSuggestionsMobile } from "./SmartSuggestions";
 import type {
   CalendarRange,
@@ -218,6 +219,15 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
         )}
       </div>
 
+      {/* ── Shared weekday header ── */}
+      <div className="rcss-mobile-weekdays" role="row">
+        {(labels?.weekdayNamesShort ?? defaultWeekdayNamesShort(weekStartsOn)).map((wd) => (
+          <div key={wd} className="rcss-mobile-weekday" role="columnheader">
+            {wd}
+          </div>
+        ))}
+      </div>
+
       {/* ── Calendar scroll area ── */}
       <div className="rcss-mobile-scroll">
         <Calendar
@@ -252,6 +262,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           cellWidth={cellWidth}
           cellHeight={cellHeight}
           _suggestionHandlerRef={suggestionHandlerRef}
+          _hidePerMonthWeekdays
         />
 
         {showLongStay && (
