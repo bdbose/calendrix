@@ -47,6 +47,7 @@ export type CalendarLabels = {
   prevMonthLabel?: string;
   nextMonthLabel?: string;
   clearLabel?: string;
+  eventsLabel?: string; // label for the event-count badge in the desktop header (default "Holidays")
 };
 
 export type CalendarClassNames = Partial<
@@ -296,4 +297,7 @@ export type CalendarProps = {
   _suggestionHandlerRef?: React.MutableRefObject<
     ((suggestion: SmartSuggestion) => void) | null
   >;
+
+  /** @internal — When true, suppresses the per-month weekday header row (used by MobileCalendarSheet which renders one shared header). */
+  _hidePerMonthWeekdays?: boolean;
 };
