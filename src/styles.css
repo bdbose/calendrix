@@ -920,6 +920,11 @@
   flex: 1;
   overflow-y: auto;
   padding: 4px 12px 80px;
+  scrollbar-width: none;
+}
+
+.rcss-mobile-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Long stay banner ── */
