@@ -1,6 +1,6 @@
 {
   "name": "next-calendrix",
-  "version": "2.2.6",
+  "version": "2.2.7",
   "description": "A lightweight, headless React calendar component with range selection, hotel mode, blocked dates, min-nights, smart suggestions, and mobile/desktop variants.",
   "keywords": [
     "react",
