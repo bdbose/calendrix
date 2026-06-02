@@ -768,6 +768,7 @@ function MobileCalendar({
         setValueRange({ from: null, to: null });
         setSingleDate(null);
       }}
+      style={{ maxWidth: 480 }}
       weekStartsOn={0}
       labels={{
         weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
