@@ -4,17 +4,21 @@ import type { CalendarEvent } from "./types";
 
 /** Build a map: dateKey → event name list. */
 export function buildEventMap(events: CalendarEvent[]): Map<string, string[]> {
-  const map = new Map<string, string[]>();
+  // Use a Set<string> per date to deduplicate event names in O(1)
+  const setMap = new Map<string, Set<string>>();
   for (const ev of events) {
-    const start = startOfDay(new Date(ev.start_date));
-    const end = startOfDay(new Date(ev.end_date));
-    for (let cur = new Date(start); cur <= end; cur.setDate(cur.getDate() + 1)) {
-      const key = formatDateKey(cur);
-      const list = map.get(key) ?? [];
-      if (!list.includes(ev.name)) list.push(ev.name);
-      map.set(key, list);
+    const start = startOfDay(new Date(ev.start_date)).getTime();
+    const end = startOfDay(new Date(ev.end_date)).getTime();
+    // Timestamp arithmetic avoids mutating-date-in-loop-condition pitfall
+    for (let t = start; t <= end; t += 86_400_000) {
+      const key = formatDateKey(new Date(t));
+      let s = setMap.get(key);
+      if (!s) { s = new Set<string>(); setMap.set(key, s); }
+      s.add(ev.name);
     }
   }
+  const map = new Map<string, string[]>();
+  for (const [k, s] of setMap) map.set(k, [...s]);
   return map;
 }
 

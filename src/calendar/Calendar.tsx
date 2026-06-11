@@ -19,8 +19,8 @@ import {
   isBeforeToday,
   findFirstBlockedDateAfter,
 } from "./blockedDatesUtils";
-import { buildEventMap, getEventLabels } from "./eventsUtils";
-import { buildDayInfoMap, getDayInfo } from "./dayInfoUtils";
+import { buildEventMap } from "./eventsUtils";
+import { buildDayInfoMap } from "./dayInfoUtils";
 import {
   getMinNights,
   meetsMinNights,
@@ -297,6 +297,12 @@ export function Calendar(props: CalendarProps) {
         ? getStrikethroughDates(selectedRange.from, minNights, blockedDateSet)
         : [],
     [mode, selectedRange?.from, selectedRange?.to, minNights, blockedDateSet],
+  );
+
+  // O(1) strikethrough lookup per cell instead of Array.includes()
+  const strikethroughSet = React.useMemo(
+    () => new Set(strikethroughDates),
+    [strikethroughDates],
   );
 
   /* ─── Hotel mode: checkout boundary ─── */
@@ -678,6 +684,23 @@ export function Calendar(props: CalendarProps) {
     ],
   );
 
+  /* ─── Auto-clear range when checkin lands on a blocked/disabled day ─── */
+
+  React.useEffect(() => {
+    if (mode !== "range") return;
+    const from = selectedRange?.from;
+    if (!from) return;
+
+    if (isDisabled(from)) {
+      setSelectedAny({ from: null, to: null });
+    }
+  }, [
+    mode,
+    selectedRange?.from,
+    isDisabled,
+    setSelectedAny,
+  ]);
+
   /* ─── Slot helpers ─── */
 
   const cn = React.useCallback(
@@ -723,9 +746,9 @@ export function Calendar(props: CalendarProps) {
       <div className={cn("shell", "rcss-cal-shell")} style={st("shell")}>
         {/* Desktop Smart Suggestions sidebar */}
         {smartSuggestions &&
-        smartSuggestions.length > 0 &&
-        showSmartSuggestions &&
-        variant === "desktop" ? (
+          smartSuggestions.length > 0 &&
+          showSmartSuggestions &&
+          variant === "desktop" ? (
           <aside
             className={cn("sidebar", "rcss-cal-sidebar")}
             style={st("sidebar")}
@@ -750,9 +773,9 @@ export function Calendar(props: CalendarProps) {
         <div className={cn("months", "rcss-cal-months")} style={st("months")}>
           {/* Mobile Smart Suggestions */}
           {smartSuggestions &&
-          smartSuggestions.length > 0 &&
-          showSmartSuggestions &&
-          variant === "mobile" ? (
+            smartSuggestions.length > 0 &&
+            showSmartSuggestions &&
+            variant === "mobile" ? (
             <SmartSuggestionsMobile
               suggestions={smartSuggestions}
               filterPast={filterPastSuggestions}
@@ -884,7 +907,9 @@ export function Calendar(props: CalendarProps) {
                     >
                       {days.map((d) => {
                         const inMonth = isSameMonth(d, m);
-                        const rawBlocked = isDateBlocked(d, blockedDateSet);
+                        // Compute key once — reused for all O(1) lookups below
+                        const key = formatDateKey(d);
+                        const rawBlocked = blockedDateSet ? blockedDateSet.has(key) : false;
                         // In hotel mode, the selected checkout may be a blocked date.
                         // Once `to` is set, hotelCheckoutBoundary resets to null, so we
                         // must also exempt the selected-to date (if it was blocked) from
@@ -906,19 +931,18 @@ export function Calendar(props: CalendarProps) {
                           (!isHotelBoundary && isDisabled(d)) || !inMonth;
 
                         const isStrikethrough =
-                          inMonth &&
-                          strikethroughDates.includes(formatDateKey(d));
+                          inMonth && strikethroughSet.has(key);
 
                         const selected =
                           mode === "single"
                             ? !!selectedSingle && isSameDay(d, selectedSingle)
                             : (!!selectedRange?.from &&
-                                !selectedRange?.to &&
-                                isSameDay(d, selectedRange.from)) ||
-                              (!!selectedRange?.from &&
-                                !!selectedRange?.to &&
-                                (isSameDay(d, selectedRange.from) ||
-                                  isSameDay(d, selectedRange.to)));
+                              !selectedRange?.to &&
+                              isSameDay(d, selectedRange.from)) ||
+                            (!!selectedRange?.from &&
+                              !!selectedRange?.to &&
+                              (isSameDay(d, selectedRange.from) ||
+                                isSameDay(d, selectedRange.to)));
 
                         const inRange =
                           mode === "range" ? isInSelectedRange(d) : false;
@@ -932,10 +956,10 @@ export function Calendar(props: CalendarProps) {
                           isSameDay(d, selectedRange.to);
                         const today = isToday(d);
 
-                        const eventLabels = inMonth
-                          ? getEventLabels(d, eventMap)
-                          : [];
-                        const info = inMonth ? getDayInfo(d, dayInfoMap) : null;
+                        const eventLabels =
+                          inMonth && eventMap ? (eventMap.get(key) ?? []) : [];
+                        const info =
+                          inMonth && dayInfoMap ? (dayInfoMap.get(key) ?? null) : null;
                         const minNightsReq = inMonth
                           ? getMinNights(d, minNights, blockedDateSet)
                           : null;

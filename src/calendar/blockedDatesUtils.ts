@@ -36,6 +36,9 @@ export function hasBlockedDateInRange(
   calendarType?: CalendarType
 ): boolean {
   if (isEmpty(blockedDates)) return false;
+  // Normalise to Set once so every lookup is O(1) regardless of input type
+  const lookup =
+    blockedDates instanceof Set ? blockedDates : new Set(blockedDates as string[]);
   const cur = new Date(startOfDay(start));
   const endTime = startOfDay(end).getTime();
   const isHotelMode = calendarType === "hotel";
@@ -45,7 +48,7 @@ export function hasBlockedDateInRange(
       cur.setDate(cur.getDate() + 1);
       continue;
     }
-    if (has(blockedDates!, formatDateKey(cur))) return true;
+    if (lookup.has(formatDateKey(cur))) return true;
     cur.setDate(cur.getDate() + 1);
   }
   return false;
@@ -60,6 +63,9 @@ export function findFirstBlockedDateAfter(
   blockedDates?: BlockedDateLookup
 ): Date | null {
   if (isEmpty(blockedDates)) return null;
+  // Normalise to Set once so the 2-year scan does O(1) lookups per day
+  const lookup =
+    blockedDates instanceof Set ? blockedDates : new Set(blockedDates as string[]);
 
   const cur = new Date(startOfDay(start));
   cur.setDate(cur.getDate() + 1);
@@ -68,7 +74,7 @@ export function findFirstBlockedDateAfter(
   maxDate.setFullYear(maxDate.getFullYear() + 2);
 
   while (cur.getTime() <= maxDate.getTime()) {
-    if (has(blockedDates!, formatDateKey(cur))) {
+    if (lookup.has(formatDateKey(cur))) {
       return new Date(cur);
     }
     cur.setDate(cur.getDate() + 1);

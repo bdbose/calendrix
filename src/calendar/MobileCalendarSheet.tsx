@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Calendar } from "./Calendar";
-import { defaultWeekdayNamesShort } from "./dateUtils";
+import { defaultWeekdayNamesShort, startOfDay } from "./dateUtils";
 import { SmartSuggestionsMobile } from "./SmartSuggestions";
 import type {
   CalendarRange,
@@ -18,8 +18,9 @@ function defaultFormatDate(d: Date): string {
 }
 
 function nightsBetween(a: Date, b: Date): number {
+  // Use startOfDay on both sides — immune to DST clock shifts
   return Math.round(
-    Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24),
+    (startOfDay(b).getTime() - startOfDay(a).getTime()) / 86_400_000,
   );
 }
 
