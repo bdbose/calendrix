@@ -350,6 +350,14 @@ export function Calendar(props: CalendarProps) {
   } | null>(null);
   const prevRenderStartRef = React.useRef(renderStart);
 
+  // One-shot initial scroll tracking. The ref is read synchronously by effects
+  // that must not act before the initial scroll; the state mirror exists so the
+  // top-sentinel effect re-runs (and re-evaluates) once the scroll completes.
+  const initialScrollDone = React.useRef(false);
+  const [initialScrollDoneState, setInitialScrollDoneState] =
+    React.useState(false);
+  const needsInitialScroll = numberOfMonths > 1 || pastCount > 0;
+
   // Restore scroll position after prepending past months
   React.useLayoutEffect(() => {
     if (
@@ -358,10 +366,25 @@ export function Calendar(props: CalendarProps) {
       monthsStackRef.current
     ) {
       const scrollParent = getScrollParent(monthsStackRef.current);
-      if (scrollParent) {
-        const delta =
-          scrollParent.scrollHeight - scrollInfoRef.current.scrollHeight;
-        scrollParent.scrollTop = scrollInfoRef.current.scrollTop + delta;
+      const saved = scrollInfoRef.current;
+      if (scrollParent && saved) {
+        // Recompute the target each time against the live scrollHeight: the
+        // prepended months grow the content above the viewport, so we offset
+        // scrollTop by exactly that growth to keep the same month at the top.
+        const applyTarget = () => {
+          const delta = scrollParent.scrollHeight - saved.scrollHeight;
+          scrollParent.scrollTop = saved.scrollTop + delta;
+        };
+        // Set synchronously before paint…
+        applyTarget();
+        // …then re-assert across the next two paints. iOS WebView / Safari has
+        // no overflow-anchor and uses async (momentum) scrolling, so a single
+        // programmatic scrollTop write made during a layout pass can be dropped
+        // or overridden — re-applying after layout settles holds the position.
+        requestAnimationFrame(() => {
+          applyTarget();
+          requestAnimationFrame(applyTarget);
+        });
       }
       scrollInfoRef.current = null;
     }
@@ -400,6 +423,15 @@ export function Calendar(props: CalendarProps) {
     const sentinel = topSentinelRef.current;
     if (!sentinel) return;
 
+    // Don't prepend past months until the one-shot initial scroll has landed.
+    // On mount the calendar scrolls the current month to the top, which sits
+    // directly below this sentinel — within its 200px rootMargin — so it would
+    // immediately intersect and prepend past months that fight the initial
+    // scroll. On iOS the compensating scrollTop write is dropped, leaving the
+    // freshly-prepended months at the top. This effect re-runs once
+    // initialScrollDoneState flips, re-evaluating intersection at that point.
+    if (needsInitialScroll && !initialScrollDoneState) return;
+
     if (typeof IntersectionObserver === "undefined") {
       setRenderStart(0);
       return;
@@ -424,7 +456,7 @@ export function Calendar(props: CalendarProps) {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [renderStart]);
+  }, [renderStart, initialScrollDoneState, needsInitialScroll]);
 
   // Reset rendered range when initialMonthsToRender or total changes
   React.useEffect(() => {
@@ -515,20 +547,36 @@ export function Calendar(props: CalendarProps) {
   }, [pendingScrollMonth, renderEnd, renderStart]);
 
   // On initial mount for mobile/multi-month: scroll to the target month
-  const initialScrollDone = React.useRef(false);
   React.useEffect(() => {
     if (initialScrollDone.current) return;
-    if (numberOfMonths <= 1 && pastCount === 0) return;
+    if (!needsInitialScroll) return;
     const stack = monthsStackRef.current;
     if (!stack) return;
 
     const targetKey = `${visibleMonth.getFullYear()}-${visibleMonth.getMonth()}`;
-    requestAnimationFrame(() => {
+    const run = () => {
       const el = stack.querySelector(`[data-month="${targetKey}"]`);
-      if (el) {
-        scrollMonthToTop(el, stack);
-        initialScrollDone.current = true;
-      }
+      if (!el) return false;
+      scrollMonthToTop(el, stack);
+      return true;
+    };
+
+    requestAnimationFrame(() => {
+      // Target month not rendered yet — bail; the effect re-runs on renderEnd.
+      if (!run()) return;
+      // Re-assert the scroll across the next paints before marking it done.
+      // iOS Safari / WebView applies layout and momentum scrolling
+      // asynchronously, so a single scroll set during the first frame can be
+      // dropped — leaving the calendar parked on the wrong month. Re-running
+      // recomputes the target against the settled layout each time.
+      requestAnimationFrame(() => {
+        run();
+        requestAnimationFrame(() => {
+          run();
+          initialScrollDone.current = true;
+          setInitialScrollDoneState(true);
+        });
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderEnd]);
