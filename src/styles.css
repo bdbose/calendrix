@@ -15,9 +15,10 @@
   background: var(--rcss-bg);
   border: 1px solid var(--rcss-border);
   border-radius: var(--rcss-radius);
-  padding: 12px;
+  padding: var(--rcss-padding, 12px);
   width: max-content;
-  font-family:
+  font-family: var(
+    --rcss-font-family,
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -26,35 +27,69 @@
     Helvetica,
     Arial,
     "Apple Color Emoji",
-    "Segoe UI Emoji";
+    "Segoe UI Emoji"
+  );
 }
 
+/* Buttons (days, arrows, suggestions) use the calendar's font — browsers
+   otherwise give buttons their own default font. :where() keeps this at zero
+   specificity so any button styles of your own still win. */
+:where(.rcss-calendar, .rcss-mobile-sheet, .rcss-desktop-card, .rcss-desktop-card-shell) button {
+  font-family: inherit;
+}
+
+/* Header: [title + badge] ··· [‹ ›] */
 .rcss-cal-header {
-  display: grid;
-  grid-template-columns: var(--rcss-cell) 1fr var(--rcss-cell);
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
-  padding: 0 10px;
+  padding: var(--rcss-header-padding, 0 10px);
+}
+
+.rcss-cal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rcss-cal-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .rcss-cal-title {
   text-align: center;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--rcss-title-font-size, 14px);
+  white-space: nowrap;
 }
 
 .rcss-cal-nav {
-  height: var(--rcss-cell);
-  width: var(--rcss-cell);
+  height: var(--rcss-nav-size, var(--rcss-cell));
+  width: var(--rcss-nav-size, var(--rcss-cell));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid var(--rcss-border);
   background: var(--rcss-bg-subtle);
   color: var(--rcss-fg);
   cursor: pointer;
   user-select: none;
-  font-size: 18px;
+  font-size: var(--rcss-nav-font-size, 18px);
   line-height: 1;
+}
+
+/* navIcon="chevron": an SVG is optically centred, unlike the ‹ › glyphs. */
+.rcss-cal-nav-icon {
+  width: 0.75em;
+  height: 0.75em;
+  display: block;
 }
 
 .rcss-cal-nav:disabled {
@@ -71,7 +106,7 @@
 
 .rcss-cal-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: var(--rcss-weekday-font-size, 12px);
   color: var(--rcss-muted);
   padding: 4px 0;
 }
@@ -91,7 +126,8 @@
   color: var(--rcss-fg);
   cursor: pointer;
   user-select: none;
-  font-size: 13px;
+  font-size: var(--rcss-day-font-size, 13px);
+  font-weight: var(--rcss-day-font-weight, 400);
   position: relative;
 }
 
@@ -156,10 +192,24 @@
 
 .rcss-variant-desktop .rcss-cal-sidebar {
   border-left: 1px solid #ddd;
-  padding: 16px 24px;
+  padding: var(--rcss-sidebar-padding, 16px 24px);
   min-width: 220px;
   max-height: 377px;
   overflow-y: auto;
+}
+
+/* theme.sidebarWidth: pin the sidebar; the months take the remaining space. */
+.rcss-sidebar-fixed.rcss-variant-desktop .rcss-cal-sidebar {
+  flex: 0 0 var(--rcss-sidebar-width);
+  min-width: var(--rcss-sidebar-width);
+  max-width: var(--rcss-sidebar-width);
+  box-sizing: border-box;
+}
+
+.rcss-sidebar-fixed.rcss-variant-desktop .rcss-cal-months {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
 }
 
 .rcss-cal-monthsStack {
@@ -175,7 +225,7 @@
 }
 
 .rcss-cal-monthTitle {
-  font-size: 14px;
+  font-size: var(--rcss-title-font-size, 14px);
   font-weight: 500;
   margin: 4px 0;
 }
@@ -220,12 +270,90 @@
 
 /* ─── Event dates ─── */
 
-.rcss-cal-cell.has-event:not(.is-selected):not(.is-blocked) {
+/* eventDisplay="highlight" (default): tinted cell. */
+.rcss-events-highlight .rcss-cal-cell.has-event:not(.is-selected):not(.is-blocked) {
   background: linear-gradient(
     to bottom,
     rgba(251, 146, 60, 0.6),
     rgba(255, 255, 255, 0.6)
   );
+}
+
+/* eventDisplay="dot": a dot under the day number (default day content). */
+.rcss-cal-dayNum {
+  position: relative;
+}
+
+.rcss-cal-eventDot {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--rcss-event-color, #f97316);
+  pointer-events: none;
+}
+
+/* eventDisplay="color": the date itself turns red (also for custom day content).
+   Selected start/end keep the accent text colour so they stay readable. */
+.rcss-events-color .rcss-cal-cell.has-event:not(.is-selected):not(.is-range-start):not(.is-range-end) {
+  color: var(--rcss-event-text-color, #dc2626);
+}
+
+/* Keep prices clear of the dot; applied to every cell so rows stay aligned. */
+.rcss-events-dot .rcss-cal-dayInfo {
+  margin-top: 6px;
+}
+
+/* showEventTooltip: event names above the cell on hover / keyboard focus. */
+.rcss-cal-cell.has-event {
+  overflow: visible;
+}
+
+.rcss-cal-cell.has-event:hover,
+.rcss-cal-cell.has-event:focus-visible {
+  z-index: 10;
+}
+
+.rcss-cal-eventTooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(30, 30, 30, 0.88);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+
+.rcss-cal-cell:hover .rcss-cal-eventTooltip,
+.rcss-cal-cell:focus-visible .rcss-cal-eventTooltip {
+  opacity: 1;
+}
+
+/* First / last column: pin the tooltip to that edge so it isn't clipped by the
+   card or sheet (or widen a scroll area) when the name is wider than the day. */
+.rcss-cal-grid > .rcss-cal-cell:nth-child(7n + 1) .rcss-cal-eventTooltip {
+  left: 0;
+  transform: none;
+}
+
+.rcss-cal-grid > .rcss-cal-cell:nth-child(7n) .rcss-cal-eventTooltip {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 /* ─── Blocked dates ─── */
@@ -234,6 +362,17 @@
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* With onBlockedDateClick, blocked cells take clicks (to explain why) but
+   don't show the hover highlight of selectable days. */
+.rcss-blocked-clickable .rcss-cal-cell.is-blocked {
+  pointer-events: auto;
+}
+
+.rcss-blocked-clickable .rcss-cal-cell.is-blocked:hover {
+  background: transparent;
+  border-color: transparent;
 }
 
 /* ─── Strikethrough (min-nights) ─── */
@@ -270,6 +409,7 @@
 .rcss-cal-dayNum {
   font-size: inherit;
   line-height: 1;
+  letter-spacing: var(--rcss-day-letter-spacing, normal);
 }
 
 /* ─── Event labels ─── */
@@ -299,7 +439,7 @@
 /* ─── Day info badges ─── */
 
 .rcss-cal-dayInfo {
-  font-size: 8px;
+  font-size: var(--rcss-day-info-font-size, 8px);
   line-height: 1;
   border-radius: 3px;
   padding: 1px 4px;
@@ -307,6 +447,28 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* dayInfoDisplay="text": plain coloured text, white on the selected start/end. */
+.rcss-cal-dayInfo--text {
+  font-size: var(--rcss-day-info-font-size, 10px);
+  font-weight: 500;
+  padding: 0;
+  margin-top: 2px;
+  border-radius: 0;
+  background: none;
+  color: var(--rcss-day-info-color, var(--rcss-muted));
+}
+
+.rcss-cal-cell.is-range-start .rcss-cal-dayInfo--text,
+.rcss-cal-cell.is-range-end .rcss-cal-dayInfo--text,
+.rcss-cal-cell.is-selected .rcss-cal-dayInfo--text {
+  color: var(--rcss-accent-fg);
+}
+
+/* 8px below the number in total (content gap is 1px) — clears the 4px dot. */
+.rcss-events-dot .rcss-cal-dayInfo--text {
+  margin-top: 7px;
 }
 
 /* ─── Variant: desktop ─── */
@@ -320,7 +482,7 @@
 
   border: none;
   border-radius: 0;
-  padding: 0;
+  padding: var(--rcss-padding, 0);
   width: 100%;
   background: #fff;
   flex: 1;
@@ -355,30 +517,34 @@
 }
 
 .rcss-variant-desktop .rcss-cal-title {
-  font-size: 20px;
+  font-size: var(--rcss-title-font-size, 20px);
   font-weight: 600;
   color: #000;
-  letter-spacing: -0.38px;
+  letter-spacing: var(--rcss-title-letter-spacing, -0.38px);
 }
 
+.rcss-cal-event-badge,
 .rcss-variant-desktop .rcss-cal-event-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 237, 199, 0.9);
-  color: #92400e;
+  /* Fonts leave more room above the letters than below; 2px/4px centres the text optically. */
+  padding: 2px 10px 4px;
+  border-radius: var(--rcss-event-badge-radius, 999px);
+  background: var(--rcss-event-badge-bg, rgba(255, 237, 199, 0.9));
+  color: var(--rcss-event-badge-fg, #92400e);
+  white-space: nowrap;
+  font-family: var(--rcss-event-badge-font-family, inherit);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--rcss-event-badge-font-weight, 500);
 }
 
 .rcss-variant-desktop .rcss-cal-nav {
-  height: 36px;
-  width: 36px;
+  height: var(--rcss-nav-size, 36px);
+  width: var(--rcss-nav-size, 36px);
   border: none;
   background: transparent;
   color: #111;
-  font-size: 26px;
+  font-size: var(--rcss-nav-font-size, 26px);
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -401,6 +567,61 @@
   gap: 24px;
 }
 
+/* ─── Side-by-side months (monthsLayout="row") ─── */
+
+.rcss-calendar.rcss-months-row .rcss-cal-monthsStack {
+  display: grid;
+  grid-template-columns: repeat(var(--rcss-months-count, 2), minmax(0, 1fr));
+  column-gap: var(--rcss-months-gap, 32px);
+  align-items: start;
+  row-gap: 24px;
+}
+
+/* [prev | title | next] — equal side columns keep the title centred on its month. */
+.rcss-months-row .rcss-cal-monthHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  /* With the 6px month gap this leaves the same space under the month name as above it. */
+  margin-bottom: 7px;
+  /* Same height with or without an arrow, so weekday rows line up across months. */
+  min-height: var(--rcss-nav-size, var(--rcss-cell));
+}
+
+.rcss-variant-desktop.rcss-months-row .rcss-cal-monthHeader {
+  min-height: var(--rcss-nav-size, 36px);
+}
+
+.rcss-months-row .rcss-cal-monthHeader-start {
+  justify-self: start;
+}
+
+.rcss-months-row .rcss-cal-monthHeader-end {
+  justify-self: end;
+}
+
+.rcss-months-row .rcss-cal-monthHeader-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.rcss-months-row .rcss-cal-monthHeader .rcss-cal-monthTitle {
+  margin: 0;
+}
+
+/* Desktop per-month titles match the single-month header title. */
+.rcss-variant-desktop.rcss-months-row .rcss-cal-monthTitle {
+  font-size: var(--rcss-title-font-size, 20px);
+  font-weight: 600;
+  color: #000;
+  letter-spacing: var(--rcss-title-letter-spacing, -0.38px);
+}
+
 .rcss-variant-desktop .rcss-cal-weekdays {
   grid-template-columns: repeat(7, 1fr);
   gap: 0;
@@ -410,7 +631,7 @@
 }
 
 .rcss-variant-desktop .rcss-cal-weekday {
-  font-size: 14px;
+  font-size: var(--rcss-weekday-font-size, 14px);
   font-weight: 600;
   color: #000;
   text-transform: uppercase;
@@ -425,10 +646,10 @@
 
 .rcss-variant-desktop .rcss-cal-cell {
   width: 100%;
-  height: 44px;
+  height: var(--rcss-cell-h, 44px);
   border-radius: 8px;
-  font-size: 20px;
-  font-weight: 400;
+  font-size: var(--rcss-day-font-size, 20px);
+  font-weight: var(--rcss-day-font-weight, 400);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -502,7 +723,7 @@
 
   border: none;
   border-radius: 0;
-  padding: 0;
+  padding: var(--rcss-padding, 0);
   width: 100%;
   background: #fff;
 }
@@ -528,7 +749,7 @@
 }
 
 .rcss-variant-mobile .rcss-cal-weekday {
-  font-size: 13px;
+  font-size: var(--rcss-weekday-font-size, 13px);
   font-weight: 500;
   color: #aaa;
   text-transform: uppercase;
@@ -545,8 +766,8 @@
   width: 100%;
   height: var(--rcss-cell-h, 58px);
   border-radius: 12px;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: var(--rcss-day-font-size, 16px);
+  font-weight: var(--rcss-day-font-weight, 400);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -768,21 +989,96 @@
 .rcss-suggestion-select {
   font-size: 13px;
   font-weight: 500;
-  color: #2563eb;
+  color: var(--rcss-suggestion-accent, #2563eb);
   white-space: nowrap;
   text-decoration: underline;
   flex-shrink: 0;
 }
 
 .rcss-suggestion-card.rcss-active {
-  background: #fff9ef;
-  border-color: #F59E0B;
+  background: var(--rcss-suggestion-active-bg, #fff9ef);
+  border-color: var(--rcss-suggestion-active-border, #f59e0b);
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 .rcss-suggestion-card.rcss-active .rcss-suggestion-select {
-  color: #92400E;
+  color: var(--rcss-suggestion-active-accent, #92400e);
   font-weight: 600;
+}
+
+/* suggestionsStyle="cards": softer, roomier cards with a ✓ on the active one. */
+.rcss-suggestions--cards {
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.rcss-suggestions--cards .rcss-suggestions-toggle {
+  padding: 13px 16px;
+}
+
+.rcss-suggestions--cards .rcss-suggestions-toggle-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #4a4a4a;
+}
+
+.rcss-suggestions--cards .rcss-suggestions-chevron {
+  color: #b0b0b0;
+}
+
+.rcss-suggestions--cards .rcss-suggestions-panel {
+  padding: 4px 16px 14px;
+  gap: 10px;
+  border-bottom: none;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-card {
+  min-width: 184px;
+  gap: 5px;
+  padding: 11px 14px;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-card:active {
+  transform: scale(0.98);
+}
+
+.rcss-suggestions--cards .rcss-suggestion-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #373636;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-sub {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-select {
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-card.rcss-active {
+  box-shadow: 0 2px 10px
+    color-mix(in srgb, var(--rcss-suggestion-active-border, #f59e0b) 30%, transparent);
+}
+
+.rcss-suggestions--cards .rcss-suggestion-card.rcss-active .rcss-suggestion-select {
+  font-weight: 700;
+}
+
+.rcss-suggestions--cards .rcss-suggestion-card.rcss-active .rcss-suggestion-select::before {
+  content: "\2713  ";
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -796,7 +1092,8 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  font-family:
+  font-family: var(
+    --rcss-font-family,
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -804,9 +1101,15 @@
     Roboto,
     Helvetica,
     Arial,
-    sans-serif;
+    sans-serif
+  );
   position: relative;
   overflow: hidden;
+}
+
+/* showTopBar={false}: the date header pins to the very top instead. */
+.rcss-mobile-sheet--no-topbar .rcss-mobile-dateheader {
+  top: 0;
 }
 
 /* ── Top title bar ── */
@@ -906,7 +1209,7 @@
 
 .rcss-mobile-weekday {
   text-align: center;
-  font-size: 13px;
+  font-size: var(--rcss-weekday-font-size, 13px);
   font-weight: 500;
   color: #8a8a8a;
   text-transform: uppercase;
@@ -918,6 +1221,7 @@
 .rcss-mobile-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 12px 80px;
   scrollbar-width: none;
 }
@@ -1009,4 +1313,476 @@
 .rcss-mobile-continue:disabled {
   background: rgba(55, 54, 54, 0.45);
   cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DesktopCalendarCard — desktop date-picker card
+   ═══════════════════════════════════════════════════════ */
+
+.rcss-desktop-card {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  font-family: var(
+    --rcss-font-family,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+}
+
+.rcss-desktop-card-header {
+  padding: var(--rcss-card-header-padding, 20px 32px 16px);
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.rcss-desktop-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+  letter-spacing: -0.38px;
+}
+
+.rcss-desktop-card-hint {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8a7a5c;
+}
+
+.rcss-desktop-card-note {
+  padding: 0 20px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #9a9a9a;
+}
+
+.rcss-desktop-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding: 14px 32px;
+  background: #fff9ef;
+  border-top: 1px solid #ddd;
+}
+
+.rcss-desktop-card-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.rcss-desktop-card-dates {
+  font-size: 14.4px;
+  line-height: 20px;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: -0.01em;
+}
+
+.rcss-desktop-card-clear {
+  margin: -4px 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: #6b6b6b;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.rcss-desktop-card-clear:hover {
+  color: #333;
+}
+
+.rcss-desktop-card-continue {
+  flex-shrink: 0;
+  min-width: 180px;
+  height: 37px;
+  padding: 0 40px;
+  border: none;
+  border-radius: 999px;
+  background: #373636;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.rcss-desktop-card-continue:hover:not(:disabled) {
+  background: #1a1a1a;
+}
+
+.rcss-desktop-card-continue:disabled {
+  background: rgba(55, 54, 54, 0.35);
+  cursor: not-allowed;
+}
+
+/* footer="fields": Check-in → Check-out boxes + nights pill */
+.rcss-desktop-card-footer--fields {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 12px 20px;
+}
+
+.rcss-desktop-card-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.rcss-desktop-card-field.rcss-active {
+  background: #fff;
+  box-shadow: 0 0 0 1px #e3c98c;
+}
+
+.rcss-desktop-card-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.rcss-desktop-card-field-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+}
+
+.rcss-desktop-card-field-value.rcss-empty {
+  color: #bbb;
+}
+
+.rcss-desktop-card-arrow {
+  flex-shrink: 0;
+  color: #cbb78a;
+}
+
+.rcss-desktop-card-nights {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid #e7d9b3;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a6a45;
+}
+
+/* suggestionsPlacement="footer": suggestion cards on the left, dates + Continue on the right.
+   Same white background as the calendar, divided by a hairline. */
+.rcss-desktop-card-footer--suggestions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  /* Bottom-aligned so Continue stays pinned bottom-right whether or not the dates line shows. */
+  align-items: end;
+  gap: 20px;
+  padding: 12px 24px 14px;
+  background: var(--rcss-bg, #fff);
+  border-top: 1px solid #eee;
+}
+
+.rcss-suggestions-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The mobile "cards" container chrome doesn't apply to the footer row. */
+.rcss-suggestions-strip.rcss-suggestions--cards {
+  box-shadow: none;
+  border-bottom: none;
+}
+
+.rcss-suggestions-strip-row {
+  position: relative;
+  min-width: 0;
+}
+
+/* Floating round arrows over the row's left / right ends. */
+.rcss-suggestions-strip-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #e5e5e5;
+  border-radius: 999px;
+  background: #fff;
+  color: #373636;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rcss-suggestions-strip-arrow.rcss-prev {
+  left: -6px;
+}
+
+.rcss-suggestions-strip-arrow.rcss-next {
+  right: 6px;
+}
+
+.rcss-suggestions-strip-arrow:hover {
+  background: #f7f7f7;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+.rcss-suggestions-strip-title {
+  padding-left: 4px; /* lines up with the cards inside the padded row */
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+}
+
+.rcss-suggestions-strip-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  /* Room so the first card's border and the card shadows aren't clipped by the
+     scroll edge; edge fades come from .rcss-can-back / .rcss-can-forward below. */
+  padding: 2px 28px 4px 4px;
+  margin: -2px 0 -4px;
+  /* Snap cards to the padded edge, not the raw scroll edge (which clips the border). */
+  scroll-padding-left: 4px;
+}
+
+/* Fade whichever edge has more cards beyond it. */
+.rcss-suggestions-strip-list.rcss-can-forward {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.rcss-suggestions-strip-list.rcss-can-back {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+
+.rcss-suggestions-strip-list.rcss-can-back.rcss-can-forward {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
+.rcss-suggestions-strip-list::-webkit-scrollbar {
+  display: none;
+}
+
+.rcss-suggestions-strip .rcss-suggestion-card {
+  scroll-snap-align: start;
+}
+
+/* Footer cards: a compact version of the mobile cards. */
+.rcss-suggestions-strip .rcss-suggestion-card,
+.rcss-suggestions-strip.rcss-suggestions--cards .rcss-suggestion-card {
+  min-width: 0;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+.rcss-suggestions-strip .rcss-suggestion-card-header {
+  gap: 10px;
+}
+
+.rcss-suggestions-strip .rcss-suggestion-label,
+.rcss-suggestions-strip.rcss-suggestions--cards .rcss-suggestion-label {
+  font-size: 13px;
+}
+
+.rcss-suggestions-strip .rcss-suggestion-sub,
+.rcss-suggestions-strip.rcss-suggestions--cards .rcss-suggestion-sub {
+  font-size: 11.5px;
+}
+
+.rcss-suggestions-strip .rcss-suggestion-select,
+.rcss-suggestions-strip.rcss-suggestions--cards .rcss-suggestion-select {
+  font-size: 11.5px;
+}
+
+.rcss-desktop-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  align-self: stretch;
+  gap: 6px;
+}
+
+.rcss-desktop-card-actions-dates {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.rcss-desktop-card-dates--compact {
+  font-size: 12.5px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.rcss-desktop-card-actions .rcss-desktop-card-clear {
+  margin: 0;
+  padding: 0;
+}
+
+/* Where supported, trim the badge text to cap height so it centres exactly for any font. */
+@supports (text-box: trim-both cap alphabetic) {
+  .rcss-cal-event-badge,
+  .rcss-variant-desktop .rcss-cal-event-badge {
+    /* Trimming needs a block container (not flex) around the text. */
+    display: inline-block;
+    padding: 6px 10px;
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+/* stepHintPlacement="tab": the step hint hangs below the card as an attached tab. */
+.rcss-desktop-card-shell {
+  /* Own stacking context, so the card/tab z-indexes can't interfere with the page. */
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+}
+
+.rcss-desktop-card-tab {
+  /* Hangs just below the card's bottom border (which stays visible above it). */
+  z-index: 0;
+  /* Slides out from behind the card once. Only transform + opacity animate, so it
+     stays on the compositor (no layout or paint per frame). */
+  /* "backwards" (not "both") so the finished animation is dropped and the layer released. */
+  animation: rcss-tab-drop 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  padding: 7px 18px 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  /* Shadow only below, so it doesn't smudge the card's border. */
+  box-shadow: 0 10px 16px -8px rgba(0, 0, 0, 0.12);
+  font-family: var(
+    --rcss-font-family,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.rcss-desktop-card-tab-sep {
+  color: #cbb78a;
+}
+
+.rcss-desktop-card-tab .rcss-desktop-card-clear {
+  margin: 0;
+  padding: 0;
+}
+
+.rcss-desktop-card-tab-dates {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: -0.01em;
+}
+
+/* Step hint above Continue (stepHintPlacement="footer"), centred over the button.
+   The region stays mounted (for screen readers); the text inside fades in per step. */
+.rcss-desktop-card-actions-hint-region {
+  align-self: center;
+  text-align: center;
+}
+
+.rcss-desktop-card-actions-hint {
+  display: inline-block;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #8a7a5c;
+  white-space: nowrap;
+  animation: rcss-tab-in 0.2s ease;
+}
+
+@keyframes rcss-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The card sits above its tab so the tab can slide out from underneath it. */
+.rcss-desktop-card-shell > .rcss-desktop-card {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rcss-tab-drop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rcss-desktop-card-tab,
+  .rcss-desktop-card-tab-text,
+  .rcss-desktop-card-actions-hint {
+    animation: none;
+  }
 }

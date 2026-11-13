@@ -1,6 +1,11 @@
 import * as React from "react";
-import { Calendar, MobileCalendarSheet } from "calendrix";
+import {
+  DesktopCalendarCard,
+  MobileCalendarSheet,
+  buildPriceDayInfo,
+} from "calendrix";
 import type {
+  BlockedDateReason,
   CalendarRange,
   CalendarEvent,
   CalendarValue,
@@ -10,6 +15,13 @@ import type {
 } from "calendrix";
 import "calendrix/styles.css";
 import "./demo.css";
+import {
+  DEFAULT_OPTIONS,
+  Playground,
+  THEME_PRESETS,
+  useToast,
+  type DemoOptions,
+} from "./Playground";
 
 /* ── Holiday metadata ── */
 const holidaysByMonth: Record<
@@ -655,80 +667,122 @@ function renderMonthTitle(month: Date, title: string) {
   );
 }
 
+/* ── Holidays as library events (used with built-in day content) ── */
+const holidayEvents: CalendarEvent[] = Object.entries(holidaysByMonth).flatMap(
+  ([key, info]) => {
+    const [y, m] = key.split("-").map(Number);
+    return Object.entries(info.dates).map(([day, name]) => {
+      const date = toDateKey(new Date(y, m, Number(day)));
+      return { start_date: date, end_date: date, name };
+    });
+  },
+);
+
+/* ── Nightly prices for the next ~8 months (weekends dearer, a few deals) ── */
+const nightlyPrices: Record<string, number> = (() => {
+  const out: Record<string, number> = {};
+  const start = new Date();
+  start.setDate(1);
+  for (let i = 0; i < 240; i++) {
+    const d = addDays(start, i);
+    const weekend = d.getDay() === 5 || d.getDay() === 6;
+    const wobble = ((d.getDate() * 37 + d.getMonth() * 11) % 9) * 600;
+    const deal = d.getDate() % 9 === 0 ? 0.6 : 1;
+    out[toDateKey(d)] = Math.round(((weekend ? 18000 : 12000) + wobble) * deal);
+  }
+  return out;
+})();
+
+// Same "cheaper than the month's average" colouring the frontend computes by hand.
+const priceDayInfo = buildPriceDayInfo(nightlyPrices);
+
+const BLOCKED_REASON_TEXT: Record<BlockedDateReason, string> = {
+  past: "This date has passed. Pick an upcoming date.",
+  blocked: "Sorry, this date is already booked.",
+  minNights: "This stay needs more nights from your check-in.",
+};
+
+/* Props shared by both views, derived from the playground options. */
+function sharedCalendarProps(opts: DemoOptions, onBlocked: (r: BlockedDateReason) => void) {
+  const builtin = opts.dayContent === "builtin";
+  return {
+    weekStartsOn: 0 as const,
+    labels: { weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] },
+    renderMonthTitle: builtin ? undefined : renderMonthTitle,
+    renderDay: builtin ? undefined : renderDay,
+    events: builtin ? holidayEvents : events,
+    eventDisplay: opts.eventDisplay,
+    showEventTooltip: opts.showEventTooltip,
+    dayInfo:
+      opts.prices === "badge" ? dayInfoData : opts.prices === "text" ? priceDayInfo : undefined,
+    dayInfoDisplay: opts.prices === "text" ? ("text" as const) : ("badge" as const),
+    hideDayInfoWhenBlocked: opts.hideDayInfoWhenBlocked,
+    minNights: minNightsData,
+    allowPastDates: opts.allowPastDates,
+    allowSameDay: false,
+    calendarType: "hotel" as const,
+    fixedWeeks: opts.fixedWeeks,
+    theme: { ...THEME_PRESETS[opts.themePreset], ...opts.themeOverrides },
+    onBlockedDateClick: opts.blockedClickToast
+      ? (_d: Date, reason: BlockedDateReason) => onBlocked(reason)
+      : undefined,
+  };
+}
+
 /* ════════════════════════════════════════════════════
-   DESKTOP VIEW
+   DESKTOP VIEW  (uses DesktopCalendarCard from lib)
    ════════════════════════════════════════════════════ */
 function DesktopCalendar({
+  opts,
   valueRange,
   setValueRange,
-  nights,
-  selectionMode,
-  allowPastDates,
   singleDate,
   setSingleDate,
   blockedDates,
+  onBlocked,
 }: {
+  opts: DemoOptions;
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
-  nights: number;
-  selectionMode: "single" | "range";
-  allowPastDates: boolean;
   singleDate: Date | null;
   setSingleDate: (d: Date | null) => void;
   blockedDates: string[];
+  onBlocked: (r: BlockedDateReason) => void;
 }) {
+  const isRange = opts.selectionMode === "range";
+  const showSidebar = isRange && opts.showSuggestions;
+  // The listing-page card is a narrow 400px; everything else uses the card's own width.
+  const width =
+    opts.footer === "fields" && opts.numberOfMonths === 1 && !showSidebar ? 400 : undefined;
+
   return (
     <div className="desktopOverlay">
-      <div className="desktopCard">
-        {/* ── Main ── */}
-        <div className="desktopMain">
-          {/* Title */}
-          <div className="desktopTitle">Select your travel dates</div>
-
-          {/* Calendar */}
-          <Calendar
-            mode={selectionMode}
-            value={selectionMode === "range" ? valueRange : singleDate}
-            onChange={(v: CalendarValue | CalendarRange) => {
-              if (selectionMode === "range") {
-                setValueRange(v as CalendarRange);
-              } else {
-                setSingleDate(v as Date | null);
-              }
-            }}
-            numberOfMonths={1}
-            weekStartsOn={0}
-            labels={{
-              weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
-            }}
-            className="desktopCalendar"
-            variant="desktop"
-            showNavigation={true}
-            renderMonthTitle={renderMonthTitle}
-            renderDay={renderDay}
-            events={events}
-            blockedDates={blockedDates}
-            dayInfo={dayInfoData}
-            minNights={minNightsData}
-            allowPastDates={allowPastDates}
-            allowSameDay={false}
-            calendarType={"hotel"}
-            smartSuggestions={
-              selectionMode === "range" ? suggestions : undefined
-            }
-            showSmartSuggestions={true}
-            filterPastSuggestions={true}
-          />
-
-          {/* Footer */}
-          <div className="desktopFooter">
-            <span className="desktopFooterLabel">Select Dates</span>
-            <button type="button" className="desktopContinueBtn">
-              Continue{nights > 0 ? ` (${nights} Nights)` : ""}
-            </button>
-          </div>
-        </div>
-      </div>
+      <DesktopCalendarCard
+        {...sharedCalendarProps(opts, onBlocked)}
+        mode={opts.selectionMode}
+        value={isRange ? valueRange : singleDate}
+        onChange={(v: CalendarValue | CalendarRange) => {
+          if (isRange) setValueRange(v as CalendarRange);
+          else setSingleDate(v as Date | null);
+        }}
+        title={opts.showTitle ? undefined : null}
+        showStepHint={opts.showStepHint}
+        stepHintPlacement={opts.stepHintPlacement}
+        datesPlacement={opts.datesPlacement}
+        note={opts.prices !== "off" ? "Prices shown are per night" : undefined}
+        footer={opts.footer}
+        width={width}
+        numberOfMonths={opts.numberOfMonths}
+        monthsLayout={opts.monthsLayout}
+        navIcon={opts.navIcon}
+        calendarClassName={opts.dayContent === "custom" ? "desktopCalendar" : undefined}
+        blockedDates={blockedDates}
+        smartSuggestions={isRange ? suggestions : undefined}
+        showSmartSuggestions={opts.showSuggestions}
+        suggestionsPlacement={opts.suggestionsPlacement}
+        suggestionsStyle={opts.suggestionsStyle}
+        filterPastSuggestions={true}
+      />
     </div>
   );
 }
@@ -737,54 +791,43 @@ function DesktopCalendar({
    MOBILE VIEW  (uses MobileCalendarSheet from lib)
    ════════════════════════════════════════════════════ */
 function MobileCalendar({
+  opts,
   valueRange,
   setValueRange,
-  selectionMode,
-  allowPastDates,
   singleDate,
   setSingleDate,
   blockedDates,
+  onBlocked,
 }: {
+  opts: DemoOptions;
   valueRange: CalendarRange;
   setValueRange: (v: CalendarRange) => void;
-  selectionMode: "single" | "range";
-  allowPastDates: boolean;
   singleDate: Date | null;
   setSingleDate: (d: Date | null) => void;
   blockedDates: string[];
+  onBlocked: (r: BlockedDateReason) => void;
 }) {
+  const isRange = opts.selectionMode === "range";
   return (
     <MobileCalendarSheet
-      mode={selectionMode}
-      value={selectionMode === "range" ? valueRange : singleDate}
+      {...sharedCalendarProps(opts, onBlocked)}
+      mode={opts.selectionMode}
+      value={isRange ? valueRange : singleDate}
       onChange={(v) => {
-        if (selectionMode === "range") {
-          setValueRange(v as CalendarRange);
-        } else {
-          setSingleDate(v as Date | null);
-        }
+        if (isRange) setValueRange(v as CalendarRange);
+        else setSingleDate(v as Date | null);
       }}
       onClear={() => {
         setValueRange({ from: null, to: null });
         setSingleDate(null);
       }}
       style={{ maxWidth: 480 }}
-      weekStartsOn={0}
-      labels={{
-        weekdayNamesShort: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"],
-      }}
       calendarClassName="mobileCalendar"
-      renderMonthTitle={renderMonthTitle}
-      renderDay={renderDay}
-      events={events}
+      showTopBar={opts.showTopBar}
       blockedDates={blockedDates}
-      dayInfo={dayInfoData}
-      minNights={minNightsData}
-      allowPastDates={allowPastDates}
-      allowSameDay={false}
-      calendarType={"hotel"}
-      smartSuggestions={selectionMode === "range" ? suggestions : undefined}
-      showSmartSuggestions={true}
+      smartSuggestions={isRange ? suggestions : undefined}
+      showSmartSuggestions={opts.showSuggestions}
+      suggestionsStyle={opts.suggestionsStyle}
       filterPastSuggestions={true}
       initialMonthsToRender={4}
       pastMonthsCount={6}
@@ -805,17 +848,15 @@ function MobileCalendar({
    APP (responsive)
    ════════════════════════════════════════════════════ */
 export function App() {
-  const [variant, setVariant] = React.useState<"mobile" | "desktop">(
-    getInitialVariant
-  );
-  const [selectionMode, setSelectionMode] = React.useState<"single" | "range">(
-    "range"
-  );
-  const [allowPastDates, setAllowPastDates] = React.useState(false);
+  const [options, setOptions] = React.useState<DemoOptions>(() => ({
+    ...DEFAULT_OPTIONS,
+    variant: getInitialVariant(),
+  }));
+  const toast = useToast();
 
   const [valueRange, setValueRange] = React.useState<CalendarRange>({
-    from: new Date(2026, 0, 16),
-    to: new Date(2026, 0, 26),
+    from: null,
+    to: null,
   });
 
   const [singleDate, setSingleDate] = React.useState<Date | null>(null);
@@ -840,103 +881,60 @@ export function App() {
     return BASE_BLOCKED_DATES;
   }, [valueRange.from, valueRange.to]);
 
-  const toggleVariant = () => {
-    const next = variant === "desktop" ? "mobile" : "desktop";
-    setVariant(next);
+  // Keep ?variant= in the URL so a refresh stays on the same view.
+  React.useEffect(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("variant", next);
+    url.searchParams.set("variant", options.variant);
     window.history.replaceState({}, "", url.toString());
-  };
+  }, [options.variant]);
+
+  const onBlocked = React.useCallback(
+    (reason: BlockedDateReason) => toast.show(BLOCKED_REASON_TEXT[reason]),
+    [toast],
+  );
+
+  // Remount the calendar when structural options change so each mode starts clean.
+  const calendarKey = [
+    options.variant,
+    options.selectionMode,
+    options.numberOfMonths,
+    options.monthsLayout,
+    options.showTopBar,
+  ].join("|");
 
   return (
     <>
-      {/* Control toggles */}
-      <div
-        style={{
-          position: "fixed",
-          top: 12,
-          right: 12,
-          zIndex: 9999,
-          display: "flex",
-          gap: 8,
-          flexDirection: "column",
-          alignItems: "flex-end",
-        }}
-      >
-        <button
-          type="button"
-          onClick={toggleVariant}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 999,
-            border: "1px solid #ccc",
-            background: "#fff",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
-          }}
-        >
-          {variant === "desktop" ? "Switch to Mobile" : "Switch to Desktop"}
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            setSelectionMode((m) => (m === "range" ? "single" : "range"))
-          }
-          style={{
-            padding: "6px 14px",
-            borderRadius: 999,
-            border: "1px solid #ccc",
-            background: "#fff",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
-          }}
-        >
-          Mode: {selectionMode === "range" ? "Range" : "Single"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setAllowPastDates((p) => !p)}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 999,
-            border: "1px solid #ccc",
-            background: allowPastDates ? "#e6ffe6" : "#fff",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
-          }}
-        >
-          Past Dates: {allowPastDates ? "ON" : "OFF"}
-        </button>
-      </div>
+      <Playground
+        options={options}
+        setOptions={setOptions}
+        onReset={() => setOptions((o) => ({ ...DEFAULT_OPTIONS, variant: o.variant }))}
+      />
 
-      {variant === "mobile" ? (
+      {options.variant === "mobile" ? (
         <MobileCalendar
+          key={calendarKey}
+          opts={options}
           valueRange={valueRange}
           setValueRange={setValueRange}
-          selectionMode={selectionMode}
-          allowPastDates={allowPastDates}
           singleDate={singleDate}
           setSingleDate={setSingleDate}
           blockedDates={dynamicBlockedDates}
+          onBlocked={onBlocked}
         />
       ) : (
         <DesktopCalendar
+          key={calendarKey}
+          opts={options}
           valueRange={valueRange}
           setValueRange={setValueRange}
-          nights={nights}
-          selectionMode={selectionMode}
-          allowPastDates={allowPastDates}
           singleDate={singleDate}
           setSingleDate={setSingleDate}
           blockedDates={dynamicBlockedDates}
+          onBlocked={onBlocked}
         />
       )}
+
+      {toast.node}
     </>
   );
 }

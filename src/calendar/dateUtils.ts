@@ -46,7 +46,8 @@ export function endOfMonth(date: Date) {
 
 export function getMonthGrid(
   month: Date,
-  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6
+  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6,
+  fixedWeeks = true
 ) {
   const first = startOfMonth(month);
   const last = endOfMonth(month);
@@ -57,9 +58,11 @@ export function getMonthGrid(
   const gridStart = new Date(first);
   gridStart.setDate(first.getDate() - offset);
 
+  // Always 6 rows when fixedWeeks; otherwise only the weeks the month spans (4–6).
+  const weeks = fixedWeeks ? 6 : Math.ceil((offset + last.getDate()) / 7);
+
   const days: Date[] = [];
-  // 6 rows * 7 columns
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(gridStart);
     d.setDate(gridStart.getDate() + i);
     days.push(d);

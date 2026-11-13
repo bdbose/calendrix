@@ -39,6 +39,96 @@ export type MinNights = {
 
 export type CalendarType = "hotel" | null;
 
+/** Why a clicked day could not be selected. */
+export type BlockedDateReason = "past" | "blocked" | "minNights";
+
+/** How multiple months are laid out. "row" places them side by side. */
+export type CalendarMonthsLayout = "stack" | "row";
+
+/** How event dates (holidays etc.) are marked. */
+export type CalendarEventDisplay = "highlight" | "dot" | "color" | "none";
+
+/** Month arrow icon. "chevron" is an SVG that sits centred in its hover circle. */
+export type CalendarNavIcon = "glyph" | "chevron";
+
+/** How `dayInfo` (e.g. prices) is shown under the day number. */
+export type CalendarDayInfoDisplay = "badge" | "text";
+
+/** Look of the mobile smart-suggestion cards. */
+export type CalendarSuggestionsStyle = "default" | "cards";
+
+/** CSS length: a number is treated as px. */
+export type CalendarLength = number | string;
+
+/**
+ * Look-and-feel values, applied as CSS variables on the calendar root. Every
+ * field is optional; anything left out keeps the built-in default. This is the
+ * supported way to restyle the calendar — no need to target internal classes.
+ */
+export type CalendarTheme = {
+  /* Colours */
+  fg?: string;
+  muted?: string;
+  border?: string;
+  bg?: string;
+  bgSubtle?: string;
+  accent?: string;
+  accentFg?: string;
+  rangeBg?: string;
+  /** Holiday dot colour (eventDisplay="dot"). */
+  eventColor?: string;
+  /** Holiday date colour (eventDisplay="color"). Default: red. */
+  eventTextColor?: string;
+
+  /* "X Holidays" month badge */
+  eventBadgeBg?: string;
+  eventBadgeFg?: string;
+  eventBadgeRadius?: CalendarLength;
+  eventBadgeFontFamily?: string;
+  eventBadgeFontWeight?: number | string;
+
+  /* Typography */
+  /** Font for the whole calendar, including day buttons. */
+  fontFamily?: string;
+  dayFontSize?: CalendarLength;
+  dayFontWeight?: number | string;
+  dayInfoFontSize?: CalendarLength;
+  /** Month title size (shared header and per-month titles). */
+  titleFontSize?: CalendarLength;
+  weekdayFontSize?: CalendarLength;
+  dayLetterSpacing?: CalendarLength;
+  titleLetterSpacing?: CalendarLength;
+
+  /* Sizing & spacing */
+  /** Day cell size (width; also height unless cellHeight is set). */
+  cellSize?: CalendarLength;
+  cellGap?: CalendarLength;
+  radius?: CalendarLength;
+  /** Padding around the calendar. */
+  padding?: CalendarLength;
+  /** Padding of the header row (title + arrows). */
+  headerPadding?: CalendarLength;
+  /** Month arrow button size. */
+  navSize?: CalendarLength;
+  /** Month arrow glyph size. */
+  navFontSize?: CalendarLength;
+  /** Gap between side-by-side months (monthsLayout="row"). */
+  monthsGap?: CalendarLength;
+  /** Fixed width of the desktop suggestions sidebar; the months take the rest. */
+  sidebarWidth?: CalendarLength;
+  sidebarPadding?: CalendarLength;
+  /** Header padding of DesktopCalendarCard. */
+  cardHeaderPadding?: CalendarLength;
+
+  /* Smart suggestions */
+  /** "Select" link colour on mobile suggestion cards. */
+  suggestionAccent?: string;
+  suggestionActiveBg?: string;
+  suggestionActiveBorder?: string;
+  /** "Select" link colour on the active card. */
+  suggestionActiveAccent?: string;
+};
+
 /* ─── Slot maps ─── */
 
 export type CalendarLabels = {
@@ -48,6 +138,7 @@ export type CalendarLabels = {
   nextMonthLabel?: string;
   clearLabel?: string;
   eventsLabel?: string; // label for the event-count badge in the desktop header (default "Holidays")
+  eventLabel?: string; // singular form, used when the count is 1 (default "Holiday")
 };
 
 export type CalendarClassNames = Partial<
@@ -161,6 +252,7 @@ export type MobileCalendarSheetProps = {
 
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   numberOfMonths?: number;
+  fixedWeeks?: boolean;
   events?: CalendarEvent[];
   showEvents?: boolean;
   blockedDates?: BlockedDates;
@@ -175,6 +267,15 @@ export type MobileCalendarSheetProps = {
   minDate?: Date;
   maxDate?: Date;
   labels?: CalendarLabels;
+  onBlockedDateClick?: (date: Date, reason: BlockedDateReason) => void;
+  theme?: CalendarTheme;
+  eventDisplay?: CalendarEventDisplay;
+  showEventTooltip?: boolean;
+  dayInfoDisplay?: CalendarDayInfoDisplay;
+  hideDayInfoWhenBlocked?: boolean;
+  suggestionsStyle?: CalendarSuggestionsStyle;
+  /** Show the top title bar with the close (X) button. Default: true. */
+  showTopBar?: boolean;
   renderDay?: (args: CalendarRenderDayArgs) => React.ReactNode;
   renderMonthTitle?: (month: Date, title: string) => React.ReactNode;
   smartSuggestions?: SmartSuggestion[];
@@ -206,6 +307,25 @@ export type CalendarProps = {
 
   /** Number of months to render. Default: 1. (Mobile designs often use 2+) */
   numberOfMonths?: number;
+
+  /**
+   * How months are laid out when `numberOfMonths > 1`. Default: "row" for
+   * `variant="desktop"` with up to 3 months (unless `pastMonthsCount` or
+   * `initialMonthsToRender` is set), otherwise "stack".
+   * "row" places them side by side, hides the shared header title, puts the
+   * prev arrow at the far left and next arrow at the far right of the
+   * month-title row, centres each month's title, and turns off the
+   * scroll-to-month behaviour (navigation is by the arrows only).
+   * `pastMonthsCount` and `initialMonthsToRender` are ignored in "row".
+   */
+  monthsLayout?: CalendarMonthsLayout;
+
+  /**
+   * Always render 6 week rows per month. Default: false — each month shows only
+   * the weeks it spans (4–6), so there's no empty trailing row. Set true to keep
+   * the calendar height constant while navigating.
+   */
+  fixedWeeks?: boolean;
 
   /** Disable selecting specific days (custom callback). */
   isDateDisabled?: (date: Date) => boolean;
@@ -271,6 +391,38 @@ export type CalendarProps = {
   cellWidth?: number;
   /** Height of date cells in pixels (desktop only). */
   cellHeight?: number;
+  /**
+   * Called when a day that can't be selected is clicked (or activated by
+   * keyboard): a past day, a blocked date, or a min-nights strikethrough day.
+   * Use it to explain why, e.g. an "already booked" toast. When set, those
+   * cells receive clicks (they otherwise have `pointer-events: none`).
+   */
+  onBlockedDateClick?: (date: Date, reason: BlockedDateReason) => void;
+
+  /* ─── Look & feel ─── */
+
+  /** Colours, fonts and sizes as typed values (applied as CSS variables). */
+  theme?: CalendarTheme;
+  /**
+   * How event dates are marked. Default: "highlight" (tinted cell + label chips).
+   * "dot" puts a small dot under the day number; "color" makes the date red;
+   * "none" marks nothing.
+   */
+  eventDisplay?: CalendarEventDisplay;
+  /** Show event names in a tooltip when hovering/focusing an event date. Default: false. */
+  showEventTooltip?: boolean;
+  /**
+   * How `dayInfo` is shown. Default: "badge" (small chip using the item's
+   * backgroundColor). "text" is plain text in the item's textColor, turning
+   * white on the selected start/end days.
+   */
+  dayInfoDisplay?: CalendarDayInfoDisplay;
+  /** Hide `dayInfo` on past and blocked days. Default: false. */
+  hideDayInfoWhenBlocked?: boolean;
+  /** Month arrow icon. Default: "glyph" (‹ ›). "chevron" is centred in its hover circle. */
+  navIcon?: CalendarNavIcon;
+  /** Mobile suggestion card look. Default: "default". */
+  suggestionsStyle?: CalendarSuggestionsStyle;
 
   /* ─── Smart Suggestions ─── */
 
@@ -300,4 +452,69 @@ export type CalendarProps = {
 
   /** @internal — When true, suppresses the per-month weekday header row (used by MobileCalendarSheet which renders one shared header). */
   _hidePerMonthWeekdays?: boolean;
+};
+
+/** Footer of `DesktopCalendarCard`. */
+export type DesktopCalendarCardFooter = "summary" | "fields" | "none";
+
+export type DesktopCalendarCardProps = Omit<CalendarProps, "variant" | "footer"> & {
+  /** Header title. Default: "Select your travel dates". Pass `null` to hide the header. */
+  title?: React.ReactNode | null;
+  /**
+   * Show a hint under the title that walks through the range pick:
+   * "Tap your check-in date to begin" → "Now tap your check-out date". Default: false.
+   */
+  showStepHint?: boolean;
+  /**
+   * Where the step hint goes. Default: "header" (under the title). "footer"
+   * shows it above the Continue button — works without a header.
+   */
+  stepHintPlacement?: "header" | "footer";
+  /** Hint before a check-in is picked. */
+  checkInHint?: React.ReactNode;
+  /** Hint after check-in, before check-out. */
+  checkOutHint?: React.ReactNode;
+  /** Small note under the calendar, e.g. "Prices shown are per night". */
+  note?: React.ReactNode;
+
+  /**
+   * Footer style. Default: "summary" — selected dates + "Clear dates" on the left,
+   * a Continue button with the night count on the right. "fields" shows
+   * Check-in → Check-out boxes and a nights pill. "none" hides it.
+   */
+  footer?: DesktopCalendarCardFooter;
+  /** Continue button label. Default: "Continue". Night count is appended in range mode. */
+  continueLabel?: string;
+  /** Called when Continue is pressed. */
+  onContinue?: (value: CalendarValue | CalendarRange) => void;
+  /** "Clear dates" label. Default: "Clear dates". */
+  clearLabel?: string;
+  /** Called after the selection is cleared from the footer. */
+  onClear?: () => void;
+  /**
+   * Where the picked dates (and "Clear dates") go in the "summary" footer.
+   * Default: "footer". "tab" shows them in a small centred tab hanging below the card.
+   */
+  datesPlacement?: "footer" | "tab";
+  /** Footer placeholder before any date is picked. Default: "Select Dates". */
+  emptyLabel?: string;
+  /** Check-in / check-out labels ("fields" footer). */
+  checkInLabel?: string;
+  checkOutLabel?: string;
+  /** Box placeholder ("fields" footer). Default: "Add date". */
+  addDateLabel?: string;
+  /** Date format in the footer. Defaults: "13 November 2026" (summary), "Fri, 13 Nov" (fields). */
+  formatDate?: (d: Date) => string;
+
+  /**
+   * Where smart suggestions go. Default: "sidebar" (right-hand panel).
+   * "footer" puts them in a scrollable chip row in the footer, with the dates
+   * and Continue on the right — keeps a wide multi-month card compact.
+   */
+  suggestionsPlacement?: "sidebar" | "footer";
+
+  /** Card width (number = px). Default: 610 for one month, wider for side-by-side months. */
+  width?: number | string;
+  /** Class for the inner Calendar. */
+  calendarClassName?: string;
 };

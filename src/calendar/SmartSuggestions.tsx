@@ -11,6 +11,8 @@ export type SmartSuggestionsProps = {
   blockedDates?: Set<string>;
   onSelect: (suggestion: SmartSuggestion) => void;
   value?: CalendarRange | null;
+  /** Mobile card look. "cards" is the polished style. */
+  styleVariant?: "default" | "cards";
 };
 
 const MONTH_NAMES = [
@@ -111,6 +113,7 @@ export function SmartSuggestionsMobile({
   blockedDates,
   onSelect,
   value,
+  styleVariant = "default",
 }: Omit<SmartSuggestionsProps, "variant">) {
   const [open, setOpen] = React.useState(false);
   const [activeKey, setActiveKey] = React.useState<string | null>(null);
@@ -136,7 +139,12 @@ export function SmartSuggestionsMobile({
   const groups = groupByMonth(filtered);
 
   return (
-    <div className="rcss-suggestions-mobile">
+    <div
+      className={
+        "rcss-suggestions-mobile" +
+        (styleVariant === "cards" ? " rcss-suggestions--cards" : "")
+      }
+    >
       <button
         type="button"
         className="rcss-suggestions-toggle"
@@ -189,5 +197,171 @@ export function SmartSuggestionsMobile({
         </div>
       )}
     </div>
+  );
+}
+
+/** Horizontal, scrollable row of suggestion cards (DesktopCalendarCard footer). */
+export function SmartSuggestionsStrip({
+  suggestions,
+  filterPast = true,
+  title = "SMART SUGGESTIONS",
+  blockedDates,
+  onSelect,
+  value,
+  styleVariant = "default",
+}: Omit<SmartSuggestionsProps, "variant">) {
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const [edges, setEdges] = React.useState({ canBack: false, canForward: false });
+
+  const filtered = React.useMemo(
+    () => applyFilters(suggestions, filterPast, blockedDates),
+    [suggestions, filterPast, blockedDates],
+  );
+  const hasItems = filtered.length > 0;
+  // Stable signature, so a new-but-equal suggestions array doesn't re-attach listeners.
+  const itemsKey = filtered.map((s) => `${s.from.getTime()}-${s.to.getTime()}`).join("|");
+
+  // Whether there's more to scroll either way (drives the arrows and edge fades).
+  // Only sets state when a value actually changes, so scrolling doesn't re-render.
+  const updateEdges = React.useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const canBack = el.scrollLeft > 1;
+    const canForward = el.scrollLeft < max - 1;
+    setEdges((prev) =>
+      prev.canBack === canBack && prev.canForward === canForward ? prev : { canBack, canForward },
+    );
+  }, []);
+
+  // Re-measure when the list mounts, its items change, or it resizes.
+  React.useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    updateEdges();
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateEdges) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      ro?.disconnect();
+    };
+  }, [updateEdges, itemsKey]);
+
+  // A plain mouse wheel scrolls the row sideways (trackpads already can) — but
+  // only while the row can move that way, so the page still scrolls at the ends.
+  React.useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+      const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+      const atEnd = el.scrollLeft >= max - 1 && e.deltaY > 0;
+      if (atStart || atEnd) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [hasItems]);
+
+  const scrollByPage = (dir: 1 | -1) => {
+    const el = listRef.current;
+    if (!el) return;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({
+      left: dir * Math.max(120, el.clientWidth * 0.8),
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  };
+
+  if (!hasItems) return null;
+
+  const isActive = (s: SmartSuggestion) =>
+    !!value?.from && !!value?.to && isSameDay(value.from, s.from) && isSameDay(value.to, s.to);
+
+  return (
+    // Same cards as the mobile suggestions panel, laid out in one scrollable row.
+    <div
+      className={
+        "rcss-suggestions-strip" + (styleVariant === "cards" ? " rcss-suggestions--cards" : "")
+      }
+    >
+      <div className="rcss-suggestions-strip-title">{title}</div>
+      <div className="rcss-suggestions-strip-row">
+        {/* Floating arrows over the row's ends, only when there's more that way. */}
+        {edges.canBack && (
+          <button
+            type="button"
+            className="rcss-suggestions-strip-arrow rcss-prev"
+            aria-label="Previous suggestions"
+            onClick={() => scrollByPage(-1)}
+          >
+            <StripChevron direction="prev" />
+          </button>
+        )}
+        {edges.canForward && (
+          <button
+            type="button"
+            className="rcss-suggestions-strip-arrow rcss-next"
+            aria-label="More suggestions"
+            onClick={() => scrollByPage(1)}
+          >
+            <StripChevron direction="next" />
+          </button>
+        )}
+        <div
+          className={
+            "rcss-suggestions-strip-list" +
+            (edges.canBack ? " rcss-can-back" : "") +
+            (edges.canForward ? " rcss-can-forward" : "")
+          }
+          ref={listRef}
+        >
+          {filtered.map((s) => {
+            const active = isActive(s);
+            return (
+              <button
+                // Dates + label: unique even if two suggestions share a label.
+                key={`${s.from.getTime()}-${s.to.getTime()}-${s.label}`}
+                type="button"
+                className={"rcss-suggestion-card" + (active ? " rcss-active" : "")}
+                aria-pressed={active}
+                onClick={() => onSelect(s)}
+              >
+                <div className="rcss-suggestion-card-header">
+                  <span className="rcss-suggestion-label">{s.label}</span>
+                  <span className="rcss-suggestion-select">{active ? "Selected" : "Select"}</span>
+                </div>
+                <div className="rcss-suggestion-sub">{s.sub}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StripChevron({ direction }: { direction: "prev" | "next" }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={direction === "prev" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6"} />
+    </svg>
   );
 }

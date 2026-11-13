@@ -8,6 +8,7 @@ import type {
   MobileCalendarSheetProps,
   SmartSuggestion,
 } from "./types";
+import { themeClasses, themeToStyle } from "./themeUtils";
 
 function defaultFormatDate(d: Date): string {
   return d.toLocaleDateString("en-GB", {
@@ -49,6 +50,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
     // Calendar passthrough
     weekStartsOn = 0,
     numberOfMonths = 15,
+    fixedWeeks,
     events,
     blockedDates,
     dayInfo,
@@ -66,6 +68,14 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
     renderDay,
     renderMonthTitle,
     labels,
+    onBlockedDateClick,
+    theme,
+    eventDisplay,
+    showEventTooltip,
+    dayInfoDisplay,
+    hideDayInfoWhenBlocked,
+    suggestionsStyle = "default",
+    showTopBar = true,
     isDateDisabled,
     minDate,
     maxDate,
@@ -138,10 +148,18 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
 
   return (
     <div
-      className={["rcss-mobile-sheet", className].filter(Boolean).join(" ")}
-      style={style}
+      className={[
+        "rcss-mobile-sheet",
+        showTopBar ? "" : "rcss-mobile-sheet--no-topbar",
+        ...themeClasses(theme),
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{ ...themeToStyle(theme), ...style }}
     >
       {/* ── Top title bar ── */}
+      {showTopBar && (
       <div className="rcss-mobile-topbar">
         <button
           type="button"
@@ -161,6 +179,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
         <span className="rcss-mobile-title">{title}</span>
         <span className="rcss-mobile-topbar-spacer" />
       </div>
+      )}
 
       {/* ── Our Suggestions ── */}
       {smartSuggestions &&
@@ -172,6 +191,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           title={smartSuggestionsTitle}
           blockedDates={blockedDateSet}
           value={rangeValue}
+          styleVariant={suggestionsStyle}
           onSelect={(s) => {
             suggestionHandlerRef.current?.(s);
             onSuggestionSelect?.(s);
@@ -236,6 +256,7 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           value={current}
           onChange={handleChange}
           numberOfMonths={numberOfMonths}
+          fixedWeeks={fixedWeeks}
           weekStartsOn={weekStartsOn}
           labels={labels}
           className={calendarClassName}
@@ -258,6 +279,12 @@ export function MobileCalendarSheet(props: MobileCalendarSheetProps) {
           initialMonthsToRender={initialMonthsToRender}
           pastMonthsCount={pastMonthsCount}
           isDateDisabled={isDateDisabled}
+          onBlockedDateClick={onBlockedDateClick}
+          theme={theme}
+          eventDisplay={eventDisplay}
+          showEventTooltip={showEventTooltip}
+          dayInfoDisplay={dayInfoDisplay}
+          hideDayInfoWhenBlocked={hideDayInfoWhenBlocked}
           minDate={minDate}
           maxDate={maxDate}
           cellWidth={cellWidth}

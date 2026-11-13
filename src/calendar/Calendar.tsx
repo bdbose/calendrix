@@ -30,6 +30,8 @@ import {
   SmartSuggestionsDesktop,
   SmartSuggestionsMobile,
 } from "./SmartSuggestions";
+import { themeClasses, themeToStyle } from "./themeUtils";
+import { resolveMonthsLayout } from "./layoutUtils";
 import type {
   CalendarProps,
   CalendarRange,
@@ -118,6 +120,8 @@ export function Calendar(props: CalendarProps) {
     defaultMonth,
     onMonthChange,
     numberOfMonths = 1,
+    monthsLayout,
+    fixedWeeks = false,
     isDateDisabled,
     minDate,
     maxDate,
@@ -144,6 +148,14 @@ export function Calendar(props: CalendarProps) {
     calendarType,
     cellWidth,
     cellHeight,
+    onBlockedDateClick,
+    theme,
+    eventDisplay = "highlight",
+    showEventTooltip = false,
+    dayInfoDisplay = "badge",
+    hideDayInfoWhenBlocked = false,
+    navIcon = "glyph",
+    suggestionsStyle = "default",
     smartSuggestions,
     showSmartSuggestions = true,
     smartSuggestionsTitle,
@@ -156,6 +168,17 @@ export function Calendar(props: CalendarProps) {
   } = props;
 
   const isHotelMode = calendarType === "hotel";
+  // Side-by-side months: a fixed window of `numberOfMonths`, moved by the arrows.
+  // Desktop shows multiple months side by side unless the consumer set up
+  // scrolling (pastMonthsCount) or asked for "stack" explicitly.
+  const isRowLayout =
+    resolveMonthsLayout({
+      monthsLayout,
+      variant,
+      numberOfMonths,
+      pastMonthsCount,
+      initialMonthsToRender,
+    }) === "row";
 
   const [selectedAny, setSelectedAny] = useControllableState<
     CalendarValue | CalendarRange
@@ -229,7 +252,7 @@ export function Calendar(props: CalendarProps) {
 
   /* ─── Build months array (includes past months if pastMonthsCount is set) ─── */
 
-  const pastCount = pastMonthsCount ?? 0;
+  const pastCount = isRowLayout ? 0 : (pastMonthsCount ?? 0);
 
   const months = React.useMemo(() => {
     const out: Date[] = [];
@@ -286,6 +309,21 @@ export function Calendar(props: CalendarProps) {
     return count;
   }, [eventMap, visibleMonth, showEvents]);
 
+  const countEventsInMonth = React.useCallback(
+    (month: Date) => {
+      if (!eventMap || !showEvents) return 0;
+      const y = month.getFullYear();
+      const mo = month.getMonth();
+      let count = 0;
+      for (const key of eventMap.keys()) {
+        const [ky, km] = key.split("-").map(Number);
+        if (ky === y && km - 1 === mo) count++;
+      }
+      return count;
+    },
+    [eventMap, showEvents],
+  );
+
   const dayInfoMap = React.useMemo(
     () => buildDayInfoMap(dayInfoArray),
     [dayInfoArray],
@@ -328,15 +366,14 @@ export function Calendar(props: CalendarProps) {
 
   const totalMonthCount = months.length;
 
-  const effectiveInitialEnd =
-    initialMonthsToRender != null && initialMonthsToRender > 0
-      ? Math.min(currentMonthIndex + initialMonthsToRender, totalMonthCount)
-      : totalMonthCount;
+  const lazyMonths =
+    !isRowLayout && initialMonthsToRender != null && initialMonthsToRender > 0;
 
-  const effectiveInitialStart =
-    initialMonthsToRender != null && initialMonthsToRender > 0
-      ? currentMonthIndex
-      : 0;
+  const effectiveInitialEnd = lazyMonths
+    ? Math.min(currentMonthIndex + initialMonthsToRender!, totalMonthCount)
+    : totalMonthCount;
+
+  const effectiveInitialStart = lazyMonths ? currentMonthIndex : 0;
 
   const [renderStart, setRenderStart] = React.useState(effectiveInitialStart);
   const [renderEnd, setRenderEnd] = React.useState(effectiveInitialEnd);
@@ -356,7 +393,8 @@ export function Calendar(props: CalendarProps) {
   const initialScrollDone = React.useRef(false);
   const [initialScrollDoneState, setInitialScrollDoneState] =
     React.useState(false);
-  const needsInitialScroll = numberOfMonths > 1 || pastCount > 0;
+  const needsInitialScroll =
+    !isRowLayout && (numberOfMonths > 1 || pastCount > 0);
 
   // Restore scroll position after prepending past months
   React.useLayoutEffect(() => {
@@ -485,13 +523,21 @@ export function Calendar(props: CalendarProps) {
 
       const targetMonth = startOfMonth(suggestion.from);
 
-      // Desktop single-month: navigate to the month
+      // Desktop single-month / side-by-side months: navigate to the month
       if (numberOfMonths <= 1) {
         setVisibleMonth(targetMonth);
+      } else if (isRowLayout) {
+        // Don't shift the window if the month is already on screen.
+        const alreadyVisible = months.some(
+          (m) =>
+            m.getFullYear() === targetMonth.getFullYear() &&
+            m.getMonth() === targetMonth.getMonth(),
+        );
+        if (!alreadyVisible) setVisibleMonth(targetMonth);
       }
 
-      // Mobile / multi-month: ensure month is rendered and scroll to it
-      if (numberOfMonths > 1 || pastCount > 0) {
+      // Mobile / stacked multi-month: ensure month is rendered and scroll to it
+      if (!isRowLayout && (numberOfMonths > 1 || pastCount > 0)) {
         const targetKey = `${targetMonth.getFullYear()}-${targetMonth.getMonth()}`;
         const targetIdx = months.findIndex(
           (m) =>
@@ -517,6 +563,7 @@ export function Calendar(props: CalendarProps) {
       setSelectedAny,
       onSuggestionSelect,
       numberOfMonths,
+      isRowLayout,
       setVisibleMonth,
       months,
       renderEnd,
@@ -765,6 +812,7 @@ export function Calendar(props: CalendarProps) {
   /* ─── Cell size CSS variables ─── */
 
   const rootStyle: React.CSSProperties = {
+    ...themeToStyle(theme),
     ...st("root"),
     ...style,
     ...(cellWidth != null
@@ -773,7 +821,38 @@ export function Calendar(props: CalendarProps) {
     ...(cellHeight != null
       ? ({ "--rcss-cell-h": `${cellHeight}px` } as React.CSSProperties)
       : {}),
+    ...(isRowLayout
+      ? ({ "--rcss-months-count": numberOfMonths } as React.CSSProperties)
+      : {}),
   };
+
+  /* ─── Month navigation buttons ─── */
+
+  const prevButton = (
+    <button
+      type="button"
+      className={cn("nav", "rcss-cal-nav")}
+      style={st("nav")}
+      onClick={goPrev}
+      disabled={!canGoPrev}
+      aria-label={labels?.prevMonthLabel ?? "Previous month"}
+    >
+      {navIcon === "chevron" ? <NavChevron direction="prev" /> : "‹"}
+    </button>
+  );
+
+  const nextButton = (
+    <button
+      type="button"
+      className={cn("nav", "rcss-cal-nav")}
+      style={st("nav")}
+      onClick={goNext}
+      disabled={!canGoNext}
+      aria-label={labels?.nextMonthLabel ?? "Next month"}
+    >
+      {navIcon === "chevron" ? <NavChevron direction="next" /> : "›"}
+    </button>
+  );
 
   /* ─── Render ─── */
 
@@ -785,6 +864,10 @@ export function Calendar(props: CalendarProps) {
         mode === "range" && selectedRange?.from && !selectedRange?.to
           ? "rcss-range-partial"
           : "",
+        isRowLayout ? "rcss-months-row" : "",
+        onBlockedDateClick ? "rcss-blocked-clickable" : "",
+        `rcss-events-${eventDisplay}`,
+        ...themeClasses(theme),
         className,
       ]
         .filter(Boolean)
@@ -830,10 +913,11 @@ export function Calendar(props: CalendarProps) {
               title={smartSuggestionsTitle}
               blockedDates={blockedDateSet}
               onSelect={handleSuggestionSelect}
+              styleVariant={suggestionsStyle}
             />
           ) : null}
           <div className="desktop-cal-wrapper">
-            {showNavigation && (
+            {showNavigation && !isRowLayout && (
               <div
                 className={cn("header", "rcss-cal-header")}
                 style={st("header")}
@@ -852,33 +936,17 @@ export function Calendar(props: CalendarProps) {
                       {eventCountInMonth > 0 && (
                         <span className="rcss-cal-event-badge">
                           {eventCountInMonth}{" "}
-                          {labels?.eventsLabel ?? "Holidays"}
+                          {eventCountInMonth === 1
+                            ? (labels?.eventLabel ?? "Holiday")
+                            : (labels?.eventsLabel ?? "Holidays")}
                         </span>
                       )}
                     </>
                   )}
                 </div>
                 <div className="rcss-cal-header-nav">
-                  <button
-                    type="button"
-                    className={cn("nav", "rcss-cal-nav")}
-                    style={st("nav")}
-                    onClick={goPrev}
-                    disabled={!canGoPrev}
-                    aria-label={labels?.prevMonthLabel ?? "Previous month"}
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    className={cn("nav", "rcss-cal-nav")}
-                    style={st("nav")}
-                    onClick={goNext}
-                    disabled={!canGoNext}
-                    aria-label={labels?.nextMonthLabel ?? "Next month"}
-                  >
-                    ›
-                  </button>
+                  {prevButton}
+                  {nextButton}
                 </div>
               </div>
             )}
@@ -912,10 +980,11 @@ export function Calendar(props: CalendarProps) {
                 />
               )}
 
-              {visibleMonths.map((m) => {
+              {visibleMonths.map((m, monthIdx) => {
                 const title = formatMonthTitle(m, labels?.monthNames);
-                const { days } = getMonthGrid(m, weekStartsOn);
+                const { days } = getMonthGrid(m, weekStartsOn, fixedWeeks);
                 const monthKey = `${m.getFullYear()}-${m.getMonth()}`;
+                const monthEventCount = isRowLayout ? countEventsInMonth(m) : 0;
                 return (
                   <section
                     key={monthKey}
@@ -923,7 +992,37 @@ export function Calendar(props: CalendarProps) {
                     className={cn("month", "rcss-cal-month")}
                     style={st("month")}
                   >
-                    {numberOfMonths > 1 || pastCount > 0 ? (
+                    {isRowLayout ? (
+                      // Side-by-side months: each title row is [prev | title | next]; the
+                      // prev arrow lives on the first month, the next arrow on the last.
+                      <div className="rcss-cal-monthHeader">
+                        <div className="rcss-cal-monthHeader-start">
+                          {showNavigation && monthIdx === 0 ? prevButton : null}
+                        </div>
+                        <div className="rcss-cal-monthHeader-title">
+                          {renderMonthTitle ? (
+                            renderMonthTitle(m, title)
+                          ) : (
+                            <>
+                              <div className="rcss-cal-monthTitle">{title}</div>
+                              {monthEventCount > 0 && (
+                                <span className="rcss-cal-event-badge">
+                                  {monthEventCount}{" "}
+                                  {monthEventCount === 1
+                                    ? (labels?.eventLabel ?? "Holiday")
+                                    : (labels?.eventsLabel ?? "Holidays")}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="rcss-cal-monthHeader-end">
+                          {showNavigation && monthIdx === visibleMonths.length - 1
+                            ? nextButton
+                            : null}
+                        </div>
+                      </div>
+                    ) : numberOfMonths > 1 || pastCount > 0 ? (
                       renderMonthTitle ? (
                         renderMonthTitle(m, title)
                       ) : (
@@ -1029,8 +1128,19 @@ export function Calendar(props: CalendarProps) {
                         };
 
                         const content = renderDay?.({ state: dayState }) ?? (
-                          <DefaultDayContent state={dayState} />
+                          <DefaultDayContent
+                            state={dayState}
+                            eventDisplay={eventDisplay}
+                            dayInfoDisplay={dayInfoDisplay}
+                            hideDayInfoWhenBlocked={hideDayInfoWhenBlocked}
+                          />
                         );
+                        const tooltip =
+                          showEventTooltip && eventLabels.length > 0 ? (
+                            <span className="rcss-cal-eventTooltip" role="tooltip">
+                              {eventLabels.join(", ")}
+                            </span>
+                          ) : null;
 
                         return (
                           <button
@@ -1053,14 +1163,29 @@ export function Calendar(props: CalendarProps) {
                               .join(" ")}
                             style={st("cell")}
                             onClick={() => {
+                              if (inMonth && (pastBlocked || blocked || isStrikethrough)) {
+                                onBlockedDateClick?.(
+                                  d,
+                                  pastBlocked ? "past" : blocked ? "blocked" : "minNights",
+                                );
+                                return;
+                              }
                               if (disabled || blocked || pastBlocked) return;
-                              if (isStrikethrough) return;
                               pickDate(d);
                             }}
                             disabled={disabled && !blocked && !pastBlocked}
+                            aria-disabled={
+                              blocked || pastBlocked || isStrikethrough ? true : undefined
+                            }
                             aria-selected={selected}
+                            aria-label={
+                              tooltip
+                                ? `${d.toDateString()}, ${eventLabels.join(", ")}`
+                                : undefined
+                            }
                           >
                             {content}
+                            {tooltip}
                           </button>
                         );
                       })}
@@ -1095,7 +1220,13 @@ export function Calendar(props: CalendarProps) {
 
 function DefaultDayContent({
   state,
+  eventDisplay = "highlight",
+  dayInfoDisplay = "badge",
+  hideDayInfoWhenBlocked = false,
 }: {
+  eventDisplay?: "highlight" | "dot" | "color" | "none";
+  dayInfoDisplay?: "badge" | "text";
+  hideDayInfoWhenBlocked?: boolean;
   state: {
     date: Date;
     eventLabels: string[];
@@ -1107,7 +1238,7 @@ function DefaultDayContent({
 }) {
   return (
     <div className="rcss-cal-dayContent">
-      {state.eventLabels.length > 0 && (
+      {eventDisplay === "highlight" && state.eventLabels.length > 0 && (
         <div className="rcss-cal-eventLabels">
           {state.eventLabels.map((lbl) => (
             <span key={lbl} className="rcss-cal-eventLabel">
@@ -1116,18 +1247,54 @@ function DefaultDayContent({
           ))}
         </div>
       )}
-      <span className="rcss-cal-dayNum">{state.date.getDate()}</span>
-      {state.dayInfo && (
-        <span
-          className="rcss-cal-dayInfo"
-          style={{
-            color: state.dayInfo.textColor,
-            backgroundColor: state.dayInfo.backgroundColor,
-          }}
-        >
-          {state.dayInfo.text}
-        </span>
-      )}
+      <span className="rcss-cal-dayNum">
+        {state.date.getDate()}
+        {eventDisplay === "dot" && state.eventLabels.length > 0 && (
+          <span className="rcss-cal-eventDot" aria-hidden="true" />
+        )}
+      </span>
+      {state.dayInfo &&
+        !(hideDayInfoWhenBlocked && state.blockedByDate) &&
+        (dayInfoDisplay === "text" ? (
+          // Colour via a variable so selected start/end days can switch it to white.
+          <span
+            className="rcss-cal-dayInfo rcss-cal-dayInfo--text"
+            style={
+              state.dayInfo.textColor
+                ? ({ "--rcss-day-info-color": state.dayInfo.textColor } as React.CSSProperties)
+                : undefined
+            }
+          >
+            {state.dayInfo.text}
+          </span>
+        ) : (
+          <span
+            className="rcss-cal-dayInfo"
+            style={{
+              color: state.dayInfo.textColor,
+              backgroundColor: state.dayInfo.backgroundColor,
+            }}
+          >
+            {state.dayInfo.text}
+          </span>
+        ))}
     </div>
+  );
+}
+
+function NavChevron({ direction }: { direction: "prev" | "next" }) {
+  return (
+    <svg
+      className="rcss-cal-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={direction === "prev" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6"} />
+    </svg>
   );
 }

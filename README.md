@@ -273,11 +273,14 @@ Add badges, icons, or holiday counts to month headers:
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `numberOfMonths` | `number` | `1` | Number of months to display |
+| `monthsLayout` | `"stack" \| "row"` | `"row"` on desktop (up to 3 months, non-scrolling), else `"stack"` | `"row"` shows months side by side: no shared header title, prev arrow at the far left and next at the far right of the month-title row, titles centred, no scroll-to-month (arrows only). Ignores `pastMonthsCount` / `initialMonthsToRender` |
 | `variant` | `"mobile" \| "desktop"` | — | Layout variant |
 | `showNavigation` | `boolean` | `true` | Show prev/next arrows |
 | `weekStartsOn` | `0–6` | `1` (Mon) | First day of the week (0 = Sun) |
 | `cellWidth` | `number` | — | Cell width in px (desktop) |
 | `cellHeight` | `number` | — | Cell height in px (desktop) |
+| `fixedWeeks` | `boolean` | `false` | Always render 6 week rows. By default each month shows only the weeks it spans (4–6) |
+| `navIcon` | `"glyph" \| "chevron"` | `"glyph"` | Month arrows: `‹ ›` text, or SVG chevrons centred in their hover circle |
 
 ### Date Constraints
 
@@ -289,6 +292,7 @@ Add badges, icons, or holiday counts to month headers:
 | `blockedDates` | `string[]` | — | Blocked dates (`"YYYY-MM-DD"`) |
 | `allowPastDates` | `boolean` | `false` | Allow selecting past dates |
 | `allowSameDay` | `boolean` | `false` | Allow same check-in & checkout |
+| `onBlockedDateClick` | `(date: Date, reason: "past" \| "blocked" \| "minNights") => void` | — | Called when an unselectable day is clicked or activated by keyboard (e.g. show an "already booked" toast). When set, blocked cells receive clicks |
 
 ### Hotel / Booking
 
@@ -298,7 +302,11 @@ Add badges, icons, or holiday counts to month headers:
 | `minNights` | `{ [date: string]: number }` | — | Min-night rules per check-in date |
 | `events` | `CalendarEvent[]` | — | Event labels to display on dates |
 | `showEvents` | `boolean` | `true` | Show/hide event labels |
-| `dayInfo` | `DayInfo[]` | — | Price / info overlays per date |
+| `eventDisplay` | `"highlight" \| "dot" \| "color" \| "none"` | `"highlight"` | How event dates are marked: tinted cell + label chips, a dot under the number, a red date, or nothing |
+| `showEventTooltip` | `boolean` | `false` | Event names in a tooltip on hover / keyboard focus |
+| `dayInfo` | `DayInfo[]` | — | Price / info overlays per date (see `buildPriceDayInfo`) |
+| `dayInfoDisplay` | `"badge" \| "text"` | `"badge"` | `"text"` shows plain coloured text that turns white on the selected start/end |
+| `hideDayInfoWhenBlocked` | `boolean` | `false` | Hide `dayInfo` on past and blocked days |
 
 ### Smart Suggestions
 
@@ -308,6 +316,7 @@ Add badges, icons, or holiday counts to month headers:
 | `showSmartSuggestions` | `boolean` | `true` | Show/hide the suggestions panel |
 | `filterPastSuggestions` | `boolean` | `true` | Auto-hide expired suggestions |
 | `onSuggestionSelect` | `(suggestion) => void` | — | Suggestion click callback |
+| `suggestionsStyle` | `"default" \| "cards"` | `"default"` | Mobile suggestion card look; `"cards"` is softer with a ✓ on the active card |
 
 ### Customization
 
@@ -317,6 +326,7 @@ Add badges, icons, or holiday counts to month headers:
 | `style` | `CSSProperties` | — | Root element inline styles |
 | `classNames` | `CalendarClassNames` | — | Class map for internal parts |
 | `styles` | `CalendarStyles` | — | Style map for internal parts |
+| `theme` | `CalendarTheme` | — | Colours, font and sizes as typed values — see [Theming](#-theming) |
 | `labels` | `CalendarLabels` | — | Custom month/weekday strings |
 | `sidebar` | `ReactNode` | — | Right-side content (desktop) |
 | `footer` | `ReactNode` | — | Bottom footer content |
@@ -349,10 +359,117 @@ import type {
   DayInfo,
   MinNights,
   SmartSuggestion,
+  BlockedDateReason,
+  CalendarMonthsLayout,
+  CalendarTheme,
+  DesktopCalendarCardProps,
 } from "calendrix";
 ```
 
 ---
+
+## 🖥️ Desktop Card
+
+`DesktopCalendarCard` is the desktop counterpart of `MobileCalendarSheet`: a
+card with a header, the calendar and a footer. It takes every `Calendar` prop.
+
+```tsx
+import { DesktopCalendarCard, buildPriceDayInfo } from "calendrix";
+
+// Search-bar style: picked dates + "Clear dates" + "Continue (3 Nights)"
+<DesktopCalendarCard
+  mode="range"
+  value={range}
+  onChange={setRange}
+  onContinue={close}
+  smartSuggestions={suggestions}
+/>
+
+// Listing style: step hint, prices, Check-in → Check-out boxes
+<DesktopCalendarCard
+  value={range}
+  onChange={setRange}
+  width={400}
+  showStepHint
+  footer="fields"
+  dayInfo={buildPriceDayInfo(pricesByDate)}
+  dayInfoDisplay="text"
+  hideDayInfoWhenBlocked
+  note="Prices shown are per night"
+/>
+```
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `title` | `ReactNode \| null` | `"Select your travel dates"` | Header title; `null` hides the header |
+| `showStepHint` | `boolean` | `false` | "Tap your check-in date to begin" → "Now tap your check-out date" under the title |
+| `stepHintPlacement` | `"header" \| "footer"` | `"header"` | Where the step hint goes: under the title, or above the Continue button (works without a header) |
+| `datesPlacement` | `"footer" \| "tab"` | `"footer"` | `"tab"` shows the picked dates ("Select Dates" → "17 November 2026 → 19 November 2026") and "Clear dates" in a small centred tab hanging below the card |
+| `checkInHint` / `checkOutHint` | `ReactNode` | — | Custom hint text |
+| `note` | `ReactNode` | — | Small note under the calendar |
+| `footer` | `"summary" \| "fields" \| "none"` | `"summary"` | Dates + Clear + Continue, or Check-in/Check-out boxes + nights pill |
+| `onContinue` | `(value) => void` | — | Continue button handler (disabled until a full range is picked) |
+| `onClear` | `() => void` | — | Called after "Clear dates" |
+| `continueLabel` / `clearLabel` / `emptyLabel` | `string` | `"Continue"` / `"Clear dates"` / `"Select Dates"` | Footer text |
+| `checkInLabel` / `checkOutLabel` / `addDateLabel` | `string` | `"Check-in"` / `"Check-out"` / `"Add date"` | Field text |
+| `formatDate` | `(d: Date) => string` | — | Footer date format |
+| `suggestionsPlacement` | `"sidebar" \| "footer"` | `"sidebar"` | `"footer"` shows suggestions as a scrollable chip row in the footer, with the dates, Clear and Continue on the right |
+| `width` | `number \| string` | `610` (wider for side-by-side months) | Card width |
+| `calendarClassName` | `string` | — | Class for the inner calendar |
+
+### Prices
+
+`buildPriceDayInfo(prices, options?)` turns `{ "YYYY-MM-DD": price }` into
+`dayInfo`, formatted compactly (₹950, ₹12.5K, ₹1.2L) and coloured green when a
+price is 20%+ below its month's average. Options: `currency`, `format`,
+`cheaperBelow` (default `0.8`, `0` to turn off), `cheaperColor`, `color`.
+`formatCompactPrice(price, currency?)` is exported too.
+
+## 🎨 Theming
+
+Pass a `theme` object instead of overriding internal classes. Every field is
+optional and typed; numbers are pixels. `MobileCalendarSheet` accepts the same
+`theme`.
+
+```tsx
+<Calendar
+  variant="desktop"
+  numberOfMonths={2}
+  monthsLayout="row"
+  navIcon="chevron"
+  eventDisplay="dot"
+  showEventTooltip
+  theme={{
+    fontFamily: "Inter, sans-serif",
+    accent: "#373636",
+    rangeBg: "#f6efe2",
+    titleFontSize: 16,
+    weekdayFontSize: 11,
+    navSize: 32,
+    sidebarWidth: 210,
+  }}
+/>
+```
+
+| Group | Fields |
+|---|---|
+| Colours | `fg`, `muted`, `border`, `bg`, `bgSubtle`, `accent`, `accentFg`, `rangeBg`, `eventColor` (dot), `eventTextColor` (red date) |
+| Holiday badge | `eventBadgeBg` (colour or gradient), `eventBadgeFg`, `eventBadgeRadius`, `eventBadgeFontFamily`, `eventBadgeFontWeight` |
+| Type | `fontFamily`, `dayFontSize`, `dayFontWeight`, `dayLetterSpacing`, `dayInfoFontSize`, `titleFontSize`, `titleLetterSpacing`, `weekdayFontSize` |
+| Size & spacing | `cellSize`, `cellGap`, `radius`, `padding`, `headerPadding`, `navSize`, `navFontSize`, `monthsGap`, `sidebarWidth`, `sidebarPadding`, `cardHeaderPadding` |
+| Suggestions | `suggestionAccent`, `suggestionActiveBg`, `suggestionActiveBorder`, `suggestionActiveAccent` |
+
+Each field maps to a `--rcss-*` CSS variable, so you can also set them in CSS.
+
+The month badge reads "1 Holiday" / "N Holidays"; change the words with
+`labels={{ eventLabel, eventsLabel }}`.
+
+### Mobile sheet options
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `showTopBar` | `boolean` | `true` | Show the title bar with the close (X) button. When hidden, the date header pins to the top |
+| `style` | `CSSProperties` | — | e.g. `{ height: "100%" }` to fill a container instead of the viewport |
 
 ## 🎨 Styling
 
