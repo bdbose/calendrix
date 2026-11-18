@@ -881,7 +881,7 @@ export function Calendar(props: CalendarProps) {
           showSmartSuggestions &&
           variant === "desktop" ? (
           <aside
-            className={cn("sidebar", "rcss-cal-sidebar")}
+            className={cn("sidebar", "rcss-cal-sidebar rcss-cal-sidebar--suggestions")}
             style={st("sidebar")}
           >
             <SmartSuggestionsDesktop

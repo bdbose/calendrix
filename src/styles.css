@@ -198,6 +198,24 @@
   overflow-y: auto;
 }
 
+/* Smart suggestions follow the calendar's height and scroll inside, so the card
+   is exactly as tall as the month (4–6 weeks) instead of a fixed 377px. */
+.rcss-variant-desktop .rcss-cal-sidebar--suggestions {
+  position: relative;
+  max-height: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.rcss-variant-desktop .rcss-cal-sidebar--suggestions > .rcss-suggestions-sidebar {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--rcss-sidebar-padding, 20px 24px);
+}
+
 /* theme.sidebarWidth: pin the sidebar; the months take the remaining space. */
 .rcss-sidebar-fixed.rcss-variant-desktop .rcss-cal-sidebar {
   flex: 0 0 var(--rcss-sidebar-width);
@@ -492,9 +510,11 @@
   flex-direction: row-reverse;
 }
 
+/* Top-aligned (not vertically centred): a 5-week month next to a taller
+   sidebar would otherwise float with uneven gaps above and below. */
 .rcss-variant-desktop .rcss-cal-months {
   width: 100%;
-  margin: auto;
+  margin: 0 auto;
 }
 
 .rcss-variant-desktop .rcss-cal-header {
